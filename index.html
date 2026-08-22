@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#132b22" />
+  <title>Rota PMMG — Sua preparação inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#" aria-label="Rota PMMG">
+        <span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M7 23.8 10.4 9l5.7 8.1L21.5 5l3.6 18.8-9-3.1z"/><circle cx="16" cy="16" r="2.7"/></svg></span>
+        <span>Rota <b>PMMG</b></span>
+      </a>
+      <nav class="main-nav" aria-label="Navegação principal">
+        <a class="nav-item active" href="#inicio" data-page="inicio"><span class="nav-icon">⌂</span><span>Início</span></a>
+        <a class="nav-item" href="#plano" data-page="plano"><span class="nav-icon">▤</span><span>Meu plano</span></a>
+        <a class="nav-item" href="#desempenho" data-page="desempenho"><span class="nav-icon">⌁</span><span>Desempenho</span></a>
+        <a class="nav-item" href="#questoes" data-page="questoes"><span class="nav-icon">?</span><span>Questões</span></a>
+        <a class="nav-item" href="#edital" data-page="edital"><span class="nav-icon">◇</span><span>Edital</span></a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="mini-progress">
+          <div class="mini-title"><span>Meta semanal</span><strong>68%</strong></div>
+          <div class="progress-track"><i style="width:68%"></i></div>
+          <small>4h 45min de 7h</small>
+        </div>
+        <a class="nav-item" href="#ajuda" data-page="ajuda"><span class="nav-icon">i</span><span>Ajuda e suporte</span></a>
+        <button class="profile" id="profileButton">
+          <span class="avatar">MR</span>
+          <span><b>Marcos Rocha</b><small>Candidato • Piloto</small></span>
+          <span class="more">•••</span>
+        </button>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-button" id="menuButton" aria-label="Abrir menu">☰</button>
+        <div class="mobile-brand">Rota <b>PMMG</b></div>
+        <div class="top-actions">
+          <span class="pilot-chip"><i></i>Piloto ativo</span>
+          <button class="icon-button" id="notificationButton" aria-label="Notificações">♢<span class="notification-dot"></span></button>
+        </div>
+      </header>
+
+      <div class="content page active" id="inicio">
+        <section class="welcome-row">
+          <div>
+            <p class="eyebrow">SÁBADO, 22 DE AGOSTO</p>
+            <h1>Bom dia, Marcos <span>👋</span></h1>
+            <p class="subtitle">Seu plano está em dia. Vamos avançar mais um passo?</p>
+          </div>
+          <button class="outline-button" id="adjustPlan"><span>⚙</span> Ajustar disponibilidade</button>
+        </section>
+
+        <section class="focus-card">
+          <div class="focus-copy">
+            <div class="label"><span class="pulse"></span> PRÓXIMA SESSÃO</div>
+            <div class="focus-title"><span class="subject-icon">⚖</span><div><small>DIREITO CONSTITUCIONAL</small><h2>Direitos e garantias fundamentais</h2></div></div>
+            <p>Prioridade alta porque este tema representa <strong>12% do edital</strong> e seu desempenho recente foi de <strong>54%.</strong></p>
+            <div class="session-meta"><span>◷ <b>45 min</b></span><span>▣ Teoria + 12 questões</span><span>↗ Nível intermediário</span></div>
+            <button class="primary-button" id="startSession">Começar sessão <span>→</span></button>
+          </div>
+          <div class="focus-visual">
+            <div class="orb orb-one"></div><div class="orb orb-two"></div>
+            <div class="target-rings"><i></i><i></i><i></i><b>54<small>%</small></b></div>
+            <span class="target-caption">Desempenho atual</span>
+          </div>
+        </section>
+
+        <section class="metrics-grid">
+          <article class="metric-card"><div class="metric-icon green">✓</div><div><span>Sessões concluídas</span><strong>8 <small>/ 12</small></strong><p><b>+2</b> nesta semana</p></div></article>
+          <article class="metric-card"><div class="metric-icon amber">◎</div><div><span>Tempo de estudo</span><strong>4h 45min</strong><p>Meta: 7h semanais</p></div></article>
+          <article class="metric-card"><div class="metric-icon blue">↗</div><div><span>Taxa de acertos</span><strong>68%</strong><p><b>↑ 6%</b> nos últimos 7 dias</p></div></article>
+          <article class="metric-card"><div class="metric-icon purple">◈</div><div><span>Sequência atual</span><strong>5 dias</strong><p>Seu recorde é 8 dias</p></div></article>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel week-panel">
+            <div class="panel-head"><div><h3>Seu plano desta semana</h3><p>18 a 24 de agosto</p></div><a href="#plano" data-page="plano">Ver plano completo →</a></div>
+            <div class="week-list">
+              <div class="day done"><div class="date"><b>18</b><span>SEG</span></div><span class="day-line"></span><div class="day-info"><b>Direito Penal</b><small>Crimes contra a pessoa • 50 min</small></div><span class="status">✓ Concluída</span></div>
+              <div class="day done"><div class="date"><b>20</b><span>QUA</span></div><span class="day-line"></span><div class="day-info"><b>Língua Portuguesa</b><small>Interpretação de texto • 40 min</small></div><span class="status">✓ Concluída</span></div>
+              <div class="day today"><div class="date"><b>22</b><span>HOJE</span></div><span class="day-line"></span><div class="day-info"><b>Direito Constitucional</b><small>Direitos fundamentais • 45 min</small></div><span class="status">Próxima</span></div>
+              <div class="day"><div class="date"><b>23</b><span>DOM</span></div><span class="day-line"></span><div class="day-info"><b>Raciocínio Lógico</b><small>Proposições • 35 min</small></div><span class="status neutral">Planejada</span></div>
+            </div>
+          </section>
+
+          <section class="panel priorities-panel">
+            <div class="panel-head"><div><h3>Mapa de prioridades</h3><p>Atualizado após sua última sessão</p></div><button class="more-button">•••</button></div>
+            <div class="priority-list">
+              <div class="priority-item"><div class="ring high"><span>1</span></div><div><b>Direito Constitucional</b><small>Alta prioridade</small></div><strong>54%</strong></div>
+              <div class="priority-item"><div class="ring high"><span>2</span></div><div><b>Raciocínio Lógico</b><small>Alta prioridade</small></div><strong>58%</strong></div>
+              <div class="priority-item"><div class="ring medium"><span>3</span></div><div><b>Língua Portuguesa</b><small>Média prioridade</small></div><strong>71%</strong></div>
+              <div class="priority-item"><div class="ring low"><span>4</span></div><div><b>Direito Penal</b><small>Em manutenção</small></div><strong>82%</strong></div>
+            </div>
+            <button class="text-button" id="whyPriorities">Entenda como calculamos suas prioridades</button>
+          </section>
+        </div>
+
+        <section class="insight-card">
+          <div class="spark">✦</div><div><span>INSIGHT DA SEMANA</span><h3>Você aprende melhor pela manhã</h3><p>Nas últimas 3 sessões iniciadas antes das 10h, sua taxa de acertos foi 18% maior. Considere reservar esse horário para os temas de alta prioridade.</p></div><button class="dismiss" aria-label="Fechar">×</button>
+        </section>
+        <footer><span>Rota PMMG apoia sua preparação, mas não garante aprovação.</span><span>Conteúdo autorizado • Seus dados estão protegidos</span></footer>
+      </div>
+
+      <div class="content page" id="plano"><div class="simple-page"><p class="eyebrow">PLANEJAMENTO ADAPTATIVO</p><h1>Meu plano de estudos</h1><p class="subtitle">Organizado conforme seu edital, desempenho e tempo disponível.</p><div class="calendar-card" id="calendar"></div></div></div>
+      <div class="content page" id="desempenho"><div class="simple-page"><p class="eyebrow">SUA EVOLUÇÃO</p><h1>Desempenho</h1><p class="subtitle">Acompanhe seus resultados e descubra onde concentrar energia.</p><div class="empty-feature"><span>↗</span><h2>68% de acertos gerais</h2><p>Você avançou 6 pontos percentuais nos últimos sete dias.</p></div></div></div>
+      <div class="content page" id="questoes"><div class="simple-page"><p class="eyebrow">BASE AUTORIZADA</p><h1>Banco de questões</h1><p class="subtitle">Pratique por disciplina, tema e nível de dificuldade.</p><div class="empty-feature"><span>?</span><h2>120 questões disponíveis</h2><p>Todas revisadas, publicadas e vinculadas ao edital do piloto.</p></div></div></div>
+      <div class="content page" id="edital"><div class="simple-page"><p class="eyebrow">CICLO ATIVO</p><h1>Edital PMMG 2026</h1><p class="subtitle">Veja sua cobertura e os assuntos mais relevantes.</p><div class="empty-feature"><span>◇</span><h2>42% do edital coberto</h2><p>Você estudou 34 de 81 tópicos mapeados nesta versão.</p></div></div></div>
+      <div class="content page" id="ajuda"><div class="simple-page"><p class="eyebrow">ESTAMOS COM VOCÊ</p><h1>Ajuda e suporte</h1><p class="subtitle">Encontre respostas ou fale com a equipe do piloto.</p><div class="empty-feature"><span>i</span><h2>Como podemos ajudar?</h2><p>Envie seu feedback sobre uma recomendação ou conteúdo.</p></div></div></div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="sessionModal" aria-hidden="true">
+    <div class="modal"><button class="modal-close" data-close>×</button><span class="modal-symbol">⚖</span><p class="eyebrow">SESSÃO DE 45 MINUTOS</p><h2>Direitos e garantias fundamentais</h2><p>Você começará com uma revisão guiada de 15 minutos e depois responderá 12 questões. Seu resultado será usado para recalcular o plano.</p><div class="modal-actions"><button class="outline-button" data-close>Agora não</button><button class="primary-button" id="confirmSession">Iniciar cronômetro →</button></div></div>
+  </div>
+  <div class="toast" id="toast"><span>✓</span><p><b>Sessão iniciada!</b><small>Seu progresso será salvo automaticamente.</small></p></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
+</body>
+</html>
