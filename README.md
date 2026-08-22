@@ -23,6 +23,12 @@ Depois acesse `http://localhost:8000`.
 
 Os dados são demonstrativos e não incluem conteúdo protegido de terceiros.
 
+### Banco de questões
+
+A interface organiza questões em cinco eixos, permite filtrar por concurso e dificuldade e oferece ordem aleatória. As questões iniciais são demonstrativas e autorais.
+
+Para importar conteúdo real, use `supabase/questions-import-template.csv`. Cada prova deve ter URL de origem e referência de autorização. O banco bloqueia por padrão tudo que ainda não estiver com status `published`.
+
 ## Supabase
 
 1. Crie um projeto no Supabase.

@@ -112,7 +112,23 @@
 
       <div class="content page" id="plano"><div class="simple-page"><p class="eyebrow">PLANEJAMENTO ADAPTATIVO</p><h1>Meu plano de estudos</h1><p class="subtitle">Organizado conforme seu edital, desempenho e tempo disponível.</p><div class="calendar-card" id="calendar"></div></div></div>
       <div class="content page" id="desempenho"><div class="simple-page"><p class="eyebrow">SUA EVOLUÇÃO</p><h1>Desempenho</h1><p class="subtitle">Acompanhe seus resultados e descubra onde concentrar energia.</p><div class="empty-feature"><span>↗</span><h2>68% de acertos gerais</h2><p>Você avançou 6 pontos percentuais nos últimos sete dias.</p></div></div></div>
-      <div class="content page" id="questoes"><div class="simple-page"><p class="eyebrow">BASE AUTORIZADA</p><h1>Banco de questões</h1><p class="subtitle">Pratique por disciplina, tema e nível de dificuldade.</p><div class="empty-feature"><span>?</span><h2>120 questões disponíveis</h2><p>Todas revisadas, publicadas e vinculadas ao edital do piloto.</p></div></div></div>
+      <div class="content page" id="questoes"><div class="questions-page">
+        <div class="questions-heading"><div><p class="eyebrow">BASE AUTORIZADA</p><h1>Banco de questões</h1><p class="subtitle">Escolha um eixo ou misture assuntos para simular uma prova.</p></div><div class="question-total"><b id="questionCount">6</b><span>questões demonstrativas</span></div></div>
+        <div class="axis-strip" id="axisStrip"></div>
+        <section class="question-workspace">
+          <aside class="filter-panel"><div class="filter-title"><h3>Filtros</h3><button id="clearFilters">Limpar</button></div>
+            <label>Eixo<select id="axisFilter"><option value="all">Todos os eixos</option></select></label>
+            <label>Concurso<select id="examFilter"><option value="all">Todos os concursos</option></select></label>
+            <label>Dificuldade<select id="difficultyFilter"><option value="all">Todas</option><option value="Fácil">Fácil</option><option value="Média">Média</option><option value="Difícil">Difícil</option></select></label>
+            <label class="switch-row"><span>Ordem aleatória<small>Embaralha a cada sessão</small></span><input type="checkbox" id="shuffleQuestions" checked><i></i></label>
+            <div class="source-note"><b>✓ Origem verificada</b><p>Só publicamos questões com fonte e autorização registradas.</p></div>
+          </aside>
+          <div class="question-area"><div class="question-toolbar"><div><span id="questionPosition">QUESTÃO 1 DE 6</span><b id="questionAxis">Direito</b></div><button class="outline-button" id="newRound">↻ Nova seleção</button></div>
+            <article class="question-card" id="questionCard"></article>
+            <div class="question-nav"><button class="outline-button" id="previousQuestion">← Anterior</button><div id="questionDots"></div><button class="primary-button" id="nextQuestion">Próxima →</button></div>
+          </div>
+        </section>
+      </div></div>
       <div class="content page" id="edital"><div class="simple-page"><p class="eyebrow">CICLO ATIVO</p><h1>Edital PMMG 2026</h1><p class="subtitle">Veja sua cobertura e os assuntos mais relevantes.</p><div class="empty-feature"><span>◇</span><h2>42% do edital coberto</h2><p>Você estudou 34 de 81 tópicos mapeados nesta versão.</p></div></div></div>
       <div class="content page" id="ajuda"><div class="simple-page"><p class="eyebrow">ESTAMOS COM VOCÊ</p><h1>Ajuda e suporte</h1><p class="subtitle">Encontre respostas ou fale com a equipe do piloto.</p><div class="empty-feature"><span>i</span><h2>Como podemos ajudar?</h2><p>Envie seu feedback sobre uma recomendação ou conteúdo.</p></div></div></div>
     </main>

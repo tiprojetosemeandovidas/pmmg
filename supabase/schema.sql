@@ -40,9 +40,40 @@ create table if not exists public.priority_map (
   unique (user_id, subject)
 );
 
+create table if not exists public.question_axes (
+  id uuid primary key default gen_random_uuid(), name text not null unique,
+  slug text not null unique, display_order integer not null default 0
+);
+
+create table if not exists public.exams (
+  id uuid primary key default gen_random_uuid(), institution text not null,
+  state char(2) not null, role text not null,
+  exam_year integer not null check (exam_year between 1900 and 2100), organizer text,
+  source_url text not null, authorization_reference text not null,
+  status text not null default 'review' check (status in ('review','published','unpublished')),
+  unique (institution,state,role,exam_year,organizer)
+);
+
+create table if not exists public.questions (
+  id uuid primary key default gen_random_uuid(),
+  exam_id uuid not null references public.exams(id) on delete restrict,
+  axis_id uuid not null references public.question_axes(id) on delete restrict,
+  subject text not null, topic text, statement text not null,
+  options jsonb not null check (jsonb_typeof(options) = 'array'),
+  correct_option integer, explanation text,
+  difficulty text check (difficulty in ('easy','medium','hard')),
+  source_page integer, content_hash text not null unique,
+  status text not null default 'review' check (status in ('review','published','rejected','unpublished')),
+  reviewed_by uuid references auth.users(id), reviewed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 alter table public.profiles enable row level security;
 alter table public.study_sessions enable row level security;
 alter table public.priority_map enable row level security;
+alter table public.question_axes enable row level security;
+alter table public.exams enable row level security;
+alter table public.questions enable row level security;
 
 create policy "profiles_select_own" on public.profiles for select using (auth.uid() = id);
 create policy "profiles_update_own" on public.profiles for update using (auth.uid() = id) with check (auth.uid() = id);
@@ -50,6 +81,15 @@ create policy "sessions_select_own" on public.study_sessions for select using (a
 create policy "sessions_insert_own" on public.study_sessions for insert with check (auth.uid() = user_id);
 create policy "sessions_update_own" on public.study_sessions for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "priorities_select_own" on public.priority_map for select using (auth.uid() = user_id);
+create policy "axes_read_authenticated" on public.question_axes for select to authenticated using (true);
+create policy "published_exams_read_authenticated" on public.exams for select to authenticated using (status = 'published');
+create policy "published_questions_read_authenticated" on public.questions for select to authenticated using (status = 'published');
+
+insert into public.question_axes (name,slug,display_order) values
+  ('Linguagens','linguagens',10), ('Raciocínio Lógico','raciocinio-logico',20),
+  ('Direito','direito',30), ('Legislação Policial','legislacao-policial',40),
+  ('Conhecimentos Gerais','conhecimentos-gerais',50)
+on conflict (slug) do update set name=excluded.name, display_order=excluded.display_order;
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
