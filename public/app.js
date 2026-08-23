@@ -1,7 +1,10 @@
 const sidebar = document.querySelector('#sidebar');
 const modal = document.querySelector('#sessionModal');
 const toast = document.querySelector('#toast');
+const landing = document.querySelector('#landing');
+const appShell = document.querySelector('#appShell');
 let supabaseClient = null;
+let errorNotebook = JSON.parse(localStorage.getItem('rota-error-notebook') || '[]');
 
 async function connectSupabase() {
   try {
@@ -31,6 +34,13 @@ function navigate(id) {
   document.querySelectorAll('.nav-item').forEach(item => item.classList.toggle('active', item.dataset.page === target.id));
   sidebar.classList.remove('open');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function enterDashboard(page = 'inicio') {
+  landing.hidden = true;
+  appShell.hidden = false;
+  history.replaceState(null, '', `#${page}`);
+  navigate(page);
 }
 
 document.querySelectorAll('[data-page]').forEach(link => link.addEventListener('click', event => {
@@ -89,7 +99,8 @@ axes.forEach(axis=>{const count=questions.filter(q=>q.axis===axis.name).length;a
 [...new Set(questions.map(q=>q.exam))].forEach(exam=>examFilter.insertAdjacentHTML('beforeend',`<option value="${exam}">${exam}</option>`));
 const shuffled=items=>[...items].sort(()=>Math.random()-.5);
 function applyQuestionFilters(){filteredQuestions=questions.filter(q=>(axisFilter.value==='all'||q.axis===axisFilter.value)&&(examFilter.value==='all'||q.exam===examFilter.value)&&(difficultyFilter.value==='all'||q.difficulty===difficultyFilter.value));if(shuffleQuestions.checked)filteredQuestions=shuffled(filteredQuestions);questionIndex=0;answered={};renderQuestion();document.querySelectorAll('.axis-card').forEach(card=>card.classList.toggle('active',card.dataset.axis===axisFilter.value))}
-function renderQuestion(){questionCount.textContent=filteredQuestions.length;if(!filteredQuestions.length){questionCard.innerHTML='<div class="no-questions"><h2>Nenhuma questão encontrada</h2><p>Altere os filtros para começar uma nova seleção.</p></div>';questionPosition.textContent='SEM RESULTADOS';questionAxis.textContent='—';questionDots.innerHTML='';return}const q=filteredQuestions[questionIndex],picked=answered[questionIndex],hasKey=Number.isInteger(q.answer);questionPosition.textContent=`QUESTÃO ${questionIndex+1} DE ${filteredQuestions.length}`;questionAxis.textContent=q.axis;questionCard.innerHTML=`<div class="question-tags"><span>${q.exam}</span><span>${q.topic}</span><span>${q.difficulty}</span></div><h2>${q.text}</h2><div class="alternatives">${q.options.map((option,i)=>`<button class="alternative ${picked===i?'selected':''} ${hasKey&&picked!==undefined&&i===q.answer?'correct':''} ${hasKey&&picked===i&&i!==q.answer?'wrong':''}" data-option="${i}"><i>${String.fromCharCode(65+i)}</i>${option}</button>`).join('')}</div>${picked!==undefined?(hasKey?`<div class="explanation"><b>${picked===q.answer?'Resposta correta.':'Resposta incorreta.'}</b> ${q.explanation}</div>`:`<div class="explanation pending-answer"><b>Gabarito pendente de revisão.</b> Consulte o caderno e o gabarito original antes de contabilizar esta resposta.</div>`):''}${q.sourceUrl?`<a class="question-source-link" href="${q.sourceUrl}" target="_blank">Abrir caderno original ↗</a>`:''}`;questionCard.querySelectorAll('.alternative').forEach(button=>button.addEventListener('click',()=>{if(answered[questionIndex]===undefined){answered[questionIndex]=Number(button.dataset.option);renderQuestion()}}));questionDots.innerHTML=filteredQuestions.slice(0,50).map((_,i)=>`<i class="${i===questionIndex?'active':''}"></i>`).join('')}
+function saveError(q){if(errorNotebook.some(item=>item.text===q.text))return;errorNotebook.unshift({text:q.text,axis:q.axis,topic:q.topic,nextReview:'Amanhã'});localStorage.setItem('rota-error-notebook',JSON.stringify(errorNotebook));renderErrorNotebook()}
+function renderQuestion(){questionCount.textContent=filteredQuestions.length;if(!filteredQuestions.length){questionCard.innerHTML='<div class="no-questions"><h2>Nenhuma questão encontrada</h2><p>Altere os filtros para começar uma nova seleção.</p></div>';questionPosition.textContent='SEM RESULTADOS';questionAxis.textContent='—';questionDots.innerHTML='';return}const q=filteredQuestions[questionIndex],picked=answered[questionIndex],hasKey=Number.isInteger(q.answer);questionPosition.textContent=`QUESTÃO ${questionIndex+1} DE ${filteredQuestions.length}`;questionAxis.textContent=q.axis;questionCard.innerHTML=`<div class="question-tags"><span>${q.exam}</span><span>${q.topic}</span><span>${q.difficulty}</span></div><h2>${q.text}</h2><div class="alternatives">${q.options.map((option,i)=>`<button class="alternative ${picked===i?'selected':''} ${hasKey&&picked!==undefined&&i===q.answer?'correct':''} ${hasKey&&picked===i&&i!==q.answer?'wrong':''}" data-option="${i}"><i>${String.fromCharCode(65+i)}</i>${option}</button>`).join('')}</div>${picked!==undefined?(hasKey?`<div class="explanation"><b>${picked===q.answer?'Resposta correta.':'Resposta incorreta.'}</b> ${q.explanation}<div class="answer-tools"><button data-question-action="favorite">☆ Favoritar</button><button data-question-action="note">＋ Anotação</button><button data-question-action="ai">✦ Perguntar à IA</button></div></div>`:`<div class="explanation pending-answer"><b>Gabarito pendente de revisão.</b> Consulte o caderno e o gabarito original antes de contabilizar esta resposta.</div>`):''}${q.sourceUrl?`<a class="question-source-link" href="${q.sourceUrl}" target="_blank">Abrir caderno original ↗</a>`:''}`;questionCard.querySelectorAll('.alternative').forEach(button=>button.addEventListener('click',()=>{if(answered[questionIndex]===undefined){const choice=Number(button.dataset.option);answered[questionIndex]=choice;if(hasKey&&choice!==q.answer)saveError(q);renderQuestion()}}));questionCard.querySelectorAll('[data-question-action]').forEach(button=>button.addEventListener('click',()=>{const action=button.dataset.questionAction;notify(action==='ai'?'Tutor IA com fontes':action==='note'?'Anotação adicionada':'Questão favoritada',action==='ai'?'A explicação detalhada será ancorada na fonte oficial indicada.':'Salvo para você revisar depois.')}));questionDots.innerHTML=filteredQuestions.slice(0,50).map((_,i)=>`<i class="${i===questionIndex?'active':''}"></i>`).join('')}
 axisStrip.addEventListener('click',event=>{const card=event.target.closest('.axis-card');if(card){axisFilter.value=card.dataset.axis;applyQuestionFilters()}});
 [axisFilter,examFilter,difficultyFilter].forEach(select=>select.addEventListener('change',applyQuestionFilters));
 document.querySelector('#newRound').addEventListener('click',applyQuestionFilters);
@@ -105,5 +116,21 @@ document.querySelectorAll('.archive-filters button').forEach(button=>button.addE
 document.querySelector('#startSimulation').addEventListener('click',()=>{filteredQuestions=shuffled(questions.filter(q=>Number.isInteger(q.answer))).slice(0,20);questionIndex=0;answered={};renderQuestion();navigate('questoes');notify('Simulado criado','Questões autorais semelhantes foram misturadas em ordem aleatória.')});
 loadQuestionArchive();
 
-navigate(location.hash.slice(1) || 'inicio');
+function renderErrorNotebook(){const list=document.querySelector('#errorList');if(!list)return;document.querySelector('#errorTotal').textContent=errorNotebook.length;list.innerHTML=errorNotebook.length?errorNotebook.map(item=>`<article class="error-item"><span>↻</span><div><b>${item.topic} • ${item.axis}</b><small>${item.text.slice(0,90)}${item.text.length>90?'…':''}</small></div><em>Revisar ${item.nextReview.toLowerCase()}</em></article>`).join(''):'<div class="error-empty"><span>✓</span><h3>Seu caderno está limpo</h3><p>Quando você errar uma questão, ela aparecerá aqui automaticamente.</p></div>'}
+renderErrorNotebook();
+
+const diagnosisModal=document.querySelector('#diagnosisModal');let diagnosisStep=1;
+function showDiagnosisStep(step){diagnosisStep=step;document.querySelectorAll('.diagnosis-step').forEach(item=>item.classList.toggle('active',Number(item.dataset.step)===step));document.querySelector('#diagnosisBar').style.width=`${step*33.333}%`;document.querySelector('#diagnosisStepLabel').textContent=`DIAGNÓSTICO • ETAPA ${step} DE 3`;document.querySelector('#diagnosisBack').style.visibility=step===1?'hidden':'visible';document.querySelector('#diagnosisNext').textContent=step===3?'Começar diagnóstico →':'Continuar →'}
+document.querySelectorAll('[data-start-diagnosis]').forEach(button=>button.addEventListener('click',()=>{diagnosisModal.classList.add('open');diagnosisModal.setAttribute('aria-hidden','false');showDiagnosisStep(1)}));
+document.querySelectorAll('[data-enter-dashboard]').forEach(button=>button.addEventListener('click',()=>enterDashboard()));
+document.querySelector('#closeDiagnosis').addEventListener('click',()=>diagnosisModal.classList.remove('open'));
+document.querySelector('#diagnosisBack').addEventListener('click',()=>showDiagnosisStep(Math.max(1,diagnosisStep-1)));
+document.querySelector('#diagnosisNext').addEventListener('click',()=>{if(diagnosisStep<3){showDiagnosisStep(diagnosisStep+1);return}diagnosisModal.classList.remove('open');enterDashboard('questoes');filteredQuestions=shuffled(questions.filter(q=>Number.isInteger(q.answer))).slice(0,20);questionIndex=0;answered={};renderQuestion();notify('Diagnóstico iniciado','Responda às questões para calcular seu nível e gerar o plano.')});
+document.querySelector('#hoursRange').addEventListener('input',event=>document.querySelector('#hoursOutput').textContent=`${event.target.value} horas`);
+document.querySelector('#startReview').addEventListener('click',()=>errorNotebook.length?notify('Revisão iniciada','Começando pelas questões com revisão vencida.'):notify('Tudo revisado','Não há questões pendentes no seu caderno.'));
+document.querySelector('#addTafResult').addEventListener('click',()=>notify('Resultado de TAF','O registro de uma nova medição será liberado no próximo passo do piloto.'));
+
+const initialHash=location.hash.slice(1);
+const appPages=new Set(['inicio','plano','desempenho','radar','questoes','erros','simulados','taf','edital','ajuda']);
+if(appPages.has(initialHash)){enterDashboard(initialHash)}
 connectSupabase();
