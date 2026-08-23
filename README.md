@@ -4,10 +4,10 @@ Protótipo responsivo de uma plataforma adaptativa de preparação para candidat
 
 ## Executar
 
-Abra `index.html` diretamente no navegador ou inicie um servidor local:
+Inicie um servidor apontando para a pasta pública:
 
 ```bash
-python3 -m http.server 8000
+python3 -m http.server 8000 --directory public
 ```
 
 Depois acesse `http://localhost:8000`.
@@ -29,12 +29,12 @@ A interface organiza questões em cinco eixos, permite filtrar por concurso e di
 
 Para importar conteúdo real, use `supabase/questions-import-template.csv`. Cada prova deve ter URL de origem e referência de autorização. O banco bloqueia por padrão tudo que ainda não estiver com status `published`.
 
-O arquivo fornecido `PMMG_Provas_CFSD_CFO_2001-2025.zip` foi catalogado em `public/provas`: são 32 cadernos e 1.288 questões extraídas para `data/questions.json`. Como a marcação visual dos gabaritos não é preservada na extração dos PDFs, as questões oficiais permanecem com `reviewStatus: pending` e não contam pontos até conferência humana.
+O arquivo fornecido `PMMG_Provas_CFSD_CFO_2001-2025.zip` foi catalogado em `public/provas`: são 32 cadernos e 1.288 questões extraídas para `public/data/questions.json`. Como a marcação visual dos gabaritos não é preservada na extração dos PDFs, as questões oficiais permanecem com `reviewStatus: pending` e não contam pontos até conferência humana.
 
 Para refazer a importação:
 
 ```bash
-python3 scripts/import_pmmg_pdfs.py /caminho/PMMG_Provas data
+python3 scripts/import_pmmg_pdfs.py /caminho/PMMG_Provas public/data
 ```
 
 A aba Simulados mistura as questões autorais semelhantes que possuem resposta revisada. Os cadernos oficiais podem ser filtrados por CFSD/CFO e abertos diretamente pela plataforma.
