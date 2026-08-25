@@ -43,8 +43,9 @@ A aba Simulados mistura as questões autorais semelhantes que possuem resposta r
 
 1. Crie um projeto no Supabase.
 2. Abra o SQL Editor e execute `supabase/schema.sql`.
-3. Copie a Project URL e a chave `anon` pública em Project Settings → API.
-4. Configure `SUPABASE_URL` e `SUPABASE_ANON_KEY` na Vercel.
+3. Execute, em ordem, os arquivos de `supabase/migrations/` (começando por `001_multi_exam_foundation.sql`).
+4. Copie a Project URL e a chave `anon` pública em Project Settings → API.
+5. Configure `SUPABASE_URL` e `SUPABASE_ANON_KEY` na Vercel.
 
 O esquema ativa Row Level Security e isola perfil, sessões e prioridades pelo usuário autenticado. Nunca exponha a chave `service_role` no frontend.
 

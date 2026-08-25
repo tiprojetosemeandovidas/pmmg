@@ -103,3 +103,7 @@ $$;
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users
 for each row execute procedure public.handle_new_user();
+
+-- Rota V2: após este schema base, execute em ordem os arquivos de
+-- supabase/migrations/. A fundação multi-concurso começa em
+-- migrations/001_multi_exam_foundation.sql e preserva estas tabelas legadas.
