@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#132b22">
+  <meta name="description" content="Envie um edital e transforme suas regras, disciplinas e etapas em uma estrutura revisável.">
+  <title>Analisar edital — Rota</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="edital.css">
+</head>
+<body class="edital-body">
+  <header class="edital-nav">
+    <a class="brand" href="/"><span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M7 23.8 10.4 9l5.7 8.1L21.5 5l3.6 18.8-9-3.1z"/><circle cx="16" cy="16" r="2.7"/></svg></span><span>Rota</span></a>
+    <a href="/">Voltar para o início</a>
+  </header>
+
+  <main class="edital-main">
+    <section class="edital-intro">
+      <p class="eyebrow">EDITAL ENGINE</p>
+      <h1>Seu edital deixa de ser um PDF.<br><em>Vira uma rota.</em></h1>
+      <p>Identificamos concurso, banca, datas, disciplinas, tópicos, critérios, etapas e TAF. Você revisa os dados antes que eles influenciem seu plano.</p>
+      <div class="privacy-note"><span>✓</span><p><b>Arquivo privado</b><small>PDF protegido, limite de 10 MB e nenhuma publicação automática.</small></p></div>
+    </section>
+
+    <section class="analyzer-card" aria-live="polite">
+      <div id="loadingState" class="state-panel"><span class="state-spinner"></span><h2>Preparando analisador</h2><p>Verificando sua sessão segura.</p></div>
+
+      <div id="configErrorState" class="state-panel" hidden><span>!</span><h2>Serviço ainda não configurado</h2><p>Configure o Supabase para habilitar login e armazenamento privado.</p></div>
+
+      <form id="loginState" class="state-panel form-state" hidden>
+        <span class="step-label">ACESSO SEGURO</span><h2>Entre para analisar seu edital</h2><p>Enviaremos um link de acesso para seu e-mail.</p>
+        <label>E-mail<input id="loginEmail" type="email" autocomplete="email" required placeholder="voce@exemplo.com"></label>
+        <button class="edital-primary" type="submit">Enviar link de acesso</button>
+        <small id="loginFeedback"></small>
+      </form>
+
+      <div id="workspaceState" hidden>
+        <div class="workspace-head"><div><span class="step-label">NOVA ANÁLISE</span><h2>Escolha um edital</h2></div><button id="signOutButton" class="quiet-button" type="button">Sair</button></div>
+        <label class="existing-label">Análises anteriores
+          <select id="existingNotices"><option value="">Selecione uma análise existente</option></select>
+        </label>
+        <div class="or-divider"><i></i><span>ou envie um novo PDF</span><i></i></div>
+        <label class="drop-zone" id="dropZone" for="noticeFile">
+          <input id="noticeFile" type="file" accept="application/pdf,.pdf">
+          <span class="upload-icon">⇧</span><b>Arraste seu edital ou selecione o PDF</b><small>Somente PDF • máximo de 10 MB</small>
+        </label>
+        <div class="selected-file" id="selectedFile" hidden><span>PDF</span><div><b></b><small></small></div><button type="button" id="clearFile" aria-label="Remover arquivo">×</button></div>
+        <button class="edital-primary" id="analyzeButton" type="button" disabled>Analisar meu edital</button>
+      </div>
+
+      <div id="processingState" class="state-panel" hidden><span class="state-spinner"></span><h2 id="processingTitle">Enviando seu edital</h2><p id="processingMessage">Validando e armazenando o PDF com segurança.</p><div class="processing-steps"><span class="active">Upload seguro</span><span>Leitura do PDF</span><span>Estruturação</span><span>Validação</span></div></div>
+
+      <div id="errorState" class="state-panel" hidden><span class="error-mark">!</span><h2>Não foi possível concluir</h2><p id="errorMessage"></p><button id="retryButton" class="edital-primary" type="button">Tentar novamente</button></div>
+
+      <div id="resultState" hidden>
+        <div class="result-head"><div><span class="step-label">ANÁLISE PRELIMINAR</span><h2 id="resultTitle">Edital analisado</h2><p>Revise as informações antes de criar ou recalcular uma rota.</p></div><span class="review-chip">Revisão necessária</span></div>
+        <div class="result-metrics" id="resultMetrics"></div>
+        <section class="result-section"><h3>Disciplinas e tópicos</h3><div id="subjectResults" class="subject-results"></div></section>
+        <section class="result-section"><h3>Etapas detectadas</h3><div id="stageResults" class="stage-results"></div></section>
+        <div class="review-alert" id="reviewAlerts" hidden></div>
+        <div class="result-actions"><button id="newAnalysisButton" class="quiet-button" type="button">Analisar outro</button><button class="edital-primary" type="button" disabled title="Disponível após revisão administrativa">Criar minha Rota</button></div>
+      </div>
+    </section>
+  </main>
+  <footer class="edital-footer">A extração automatizada pode conter erros. Informações críticas exigem revisão humana.</footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="edital.js"></script>
+</body>
+</html>
+

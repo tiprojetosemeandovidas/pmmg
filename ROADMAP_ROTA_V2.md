@@ -87,7 +87,7 @@ Dados demonstrativos deverão ser marcados como demonstração e removidos das m
 | ---- | -------- | -------- | ----- | ----- | ------ |
 | 0 | Auditar arquitetura, mocks, segurança e funcionalidades | `ROADMAP_ROTA_V2.md` | Auditoria de `schema.sql` | Baixo | Concluída |
 | 1 | Fundação multi-concurso e taxonomia universal | `supabase/migrations/001_multi_exam_foundation.sql`, `supabase/schema.sql`, documentação | organizations, positions, boards, subjects, topics, exams, user_exams e vínculos | Médio | Concluída (migração pronta; aplicação remota pendente) |
-| 2 | Edital Engine, upload privado, extração validada e revisão | `api/editals/*`, `lib/ai/*`, UI do analisador | notices, chunks, extraction runs, stages | Alto | Pendente |
+| 2 | Edital Engine, upload privado, extração validada e revisão | `api/editals/*`, `api/admin/editals/*`, `lib/ai/*`, `public/analisar-edital.html`, `public/admin.html` | notices, chunks, extraction runs, stages e mapeamentos | Alto | Implementada localmente (migração e validação remota pendentes) |
 | 3 | Question Engine, origens, alternativas e tópicos | API/UI de questões e importador | options, topics, sources, validation | Alto | Pendente |
 | 4 | Candidate Model | serviços de respostas/mastery | user_answers, topic_mastery, diagnostics | Alto | Pendente |
 | 5 | Adaptive Engine explicável | `lib/domain/adaptive*`, API e testes | recommendations e reasons | Alto | Pendente |

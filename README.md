@@ -49,9 +49,30 @@ A aba Simulados mistura as questões autorais semelhantes que possuem resposta r
 
 O esquema ativa Row Level Security e isola perfil, sessões e prioridades pelo usuário autenticado. Nunca exponha a chave `service_role` no frontend.
 
+### Edital Engine (Fase 2)
+
+A página `/analisar-edital` oferece login por link mágico, upload direto e assinado para um bucket privado e extração estruturada. PDFs são limitados a 10 MB e validados novamente no servidor antes do registro. Toda extração fica com revisão obrigatória; usuários com papel `admin` ou `content_reviewer` podem revisar em `/admin`.
+
+Além das variáveis públicas acima, configure somente no ambiente server-side:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY
+OPENAI_API_KEY
+OPENAI_EDITAL_MODEL
+```
+
+O modelo pode ser substituído sem alterar o extrator. A API usa Structured Outputs e valida novamente datas, tipos, disciplinas e confiança antes de persistir. O rate limit atual protege cada instância serverless; antes de alto volume, substitua-o por um armazenamento distribuído.
+
+Conceda revisão somente pelo SQL Editor ou por outro processo administrativo confiável, nunca pelo frontend:
+
+```sql
+insert into public.user_roles (user_id, role)
+values ('UUID_DO_USUARIO', 'content_reviewer');
+```
+
 ## Vercel
 
-Importe este repositório na Vercel e configure as duas variáveis acima para Production, Preview e Development. O endpoint `/api/config` entrega somente a URL e a chave pública necessárias ao navegador.
+Importe este repositório na Vercel e configure as variáveis aplicáveis para Production, Preview e Development. O endpoint `/api/config` entrega somente a URL e a chave pública necessárias ao navegador.
 
 Para deploy via CLI, depois de instalar e autenticar a Vercel CLI:
 
