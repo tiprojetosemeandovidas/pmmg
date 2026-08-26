@@ -10,7 +10,9 @@ const required = [
   'api/editals/index.js', 'api/editals/upload-url.js', 'api/editals/upload.js',
   'api/editals/[id].js', 'api/editals/[id]/extract.js', 'api/editals/[id]/status.js',
   'api/admin/editals/index.js', 'api/admin/editals/[id].js',
-  'supabase/migrations/001_multi_exam_foundation.sql', 'supabase/migrations/002_edital_engine.sql'
+  'api/questions/index.js', 'api/admin/questions/index.js', 'api/admin/questions/[id].js',
+  'supabase/migrations/001_multi_exam_foundation.sql', 'supabase/migrations/002_edital_engine.sql',
+  'supabase/migrations/003_question_engine.sql', 'supabase/verify/003_question_engine_check.sql'
 ];
 
 for (const file of required) assert.ok(fs.existsSync(path.join(root, file)), `Arquivo obrigatório ausente: ${file}`);

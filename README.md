@@ -73,6 +73,20 @@ on conflict do nothing;
 
 Depois de executar `supabase/schema.sql`, `001_multi_exam_foundation.sql` e `002_edital_engine.sql` no SQL Editor, execute `supabase/verify/002_edital_engine_check.sql`. O último arquivo é somente leitura e falha explicitamente se faltar tabela, coluna, bucket privado ou função de rate limit.
 
+### Question Engine (Fase 3)
+
+Em um banco já inicializado, execute `supabase/migrations/003_question_engine.sql` depois das migrations anteriores e valide com `supabase/verify/003_question_engine_check.sql`. A migration preserva `questions.options` para compatibilidade, cria alternativas normalizadas, relação muitos-para-muitos com tópicos, metadados de origem e busca textual em português.
+
+Somente questões com `status = published` e `validation_status = validated` são entregues pela API autenticada `GET /api/questions`. O contrato público omite o gabarito. Questões oficiais exigem URL de fonte e conteúdo gerado por IA mantém sempre `source_type = ai_generated`.
+
+Para preparar um lote, copie `supabase/questions-import-template.csv`, substitua os UUIDs pelo catálogo real e execute:
+
+```bash
+node scripts/prepare_questions_import.js caminho/questoes.csv > questions-import.json
+```
+
+Envie o JSON, em lotes de até 25, para `POST /api/admin/questions` com o token de um usuário `admin` ou `content_reviewer`. Toda importação começa como pendente; a revisão administrativa usa `PATCH /api/admin/questions/:id` com `decision` igual a `validated` ou `rejected`. A captura de respostas e a correção ao candidato pertencem à Fase 4 e ainda não foram ativadas.
+
 ## Qualidade
 
 O projeto usa npm e fixa a linha LTS Node.js 24.x:

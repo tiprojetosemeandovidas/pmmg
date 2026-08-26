@@ -9,7 +9,7 @@ const { PGlite } = require('@electric-sql/pglite');
 const root = path.resolve(__dirname, '..');
 const sql = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('aplica schema e migrações, reaplica Fase 2 e verifica objetos', { timeout: 30000 }, async () => {
+test('aplica schema e migrações, reaplica Fases 2 e 3 e verifica objetos', { timeout: 30000 }, async () => {
   const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
   const db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(`
@@ -36,6 +36,9 @@ test('aplica schema e migrações, reaplica Fase 2 e verifica objetos', { timeou
   await db.exec(sql('supabase/migrations/002_edital_engine.sql'));
   await db.exec(sql('supabase/migrations/002_edital_engine.sql'));
   await db.exec(sql('supabase/verify/002_edital_engine_check.sql'));
+  await db.exec(sql('supabase/migrations/003_question_engine.sql'));
+  await db.exec(sql('supabase/migrations/003_question_engine.sql'));
+  await db.exec(sql('supabase/verify/003_question_engine_check.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);
@@ -48,5 +51,8 @@ test('aplica schema e migrações, reaplica Fase 2 e verifica objetos', { timeou
   const blocked = await db.query("select * from public.consume_rate_limit($1, 1, 3600)", ['a'.repeat(64)]);
   assert.equal(limited.rows[0].allowed, true);
   assert.equal(blocked.rows[0].allowed, false);
+  const questionTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('question_options','question_topics','question_sources') order by tablename");
+  assert.equal(questionTables.rows.length, 3);
+  assert.ok(questionTables.rows.every(row => row.rowsecurity));
   await db.close();
 });
