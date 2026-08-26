@@ -14,3 +14,6 @@ test('rejeita confiança fora da escala', () => assert.equal(validateEdital(vali
 test('rejeita disciplina sem tópicos', () => assert.equal(validateEdital(valid({ disciplinas: [{ nome: 'Direito' }] })).valid, false));
 test('rejeita data impossível', () => assert.equal(validateEdital(valid({ data_prova: '2026-02-31' })).valid, false));
 test('rejeita campo inesperado na revisão manual', () => assert.equal(validateEdital(valid({ campo_inventado: true })).valid, false));
+test('aceita campos desconhecidos como null e encaminha baixa confiança para revisão', () => assert.equal(validateEdital(valid({ orgao: null, cargo: null, banca: null, numero_edital: null, data_prova: null, numero_vagas: null, disciplinas: [], confianca_geral: 0, alertas_revisao: ['PDF sem texto suficiente'] })).valid, true));
+test('rejeita baixa confiança sem justificativa', () => assert.equal(validateEdital(valid({ confianca_geral: 0.2, alertas_revisao: [] })).valid, false));
+test('rejeita período de inscrição invertido', () => assert.equal(validateEdital(valid({ data_inscricao_inicio: '2026-05-10', data_inscricao_fim: '2026-05-01' })).valid, false));

@@ -16,7 +16,7 @@ async function connectSupabase() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     document.body.dataset.database = 'connected';
     if (session?.user) hydrateProfile(session.user);
-  } catch (_) {
+  } catch {
     // O protótipo continua funcional quando executado sem backend local.
   }
 }

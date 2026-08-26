@@ -1,0 +1,23 @@
+{
+  "name": "rota-pmmg",
+  "version": "2.0.0",
+  "private": true,
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "lint": "eslint api lib public/*.js tests scripts/validate-build.js",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --test-isolation=none",
+    "build": "node scripts/validate-build.js",
+    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.7",
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.0.0",
+    "globals": "^16.0.0",
+    "typescript": "^5.9.0"
+  }
+}

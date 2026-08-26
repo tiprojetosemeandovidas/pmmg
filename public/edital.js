@@ -12,7 +12,14 @@ const authHeaders = () => ({ Authorization: `Bearer ${session.access_token}`, 'C
 async function api(path, options = {}) {
   const response = await fetch(path, Object.assign({}, options, { headers: Object.assign({}, authHeaders(), options.headers) }));
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error?.message || 'O serviço não respondeu como esperado.');
+  if (!response.ok) {
+    const cause = new Error(payload.error?.message || 'O serviço não respondeu como esperado.');
+    cause.code = payload.error?.code;
+    cause.status = response.status;
+    cause.retryAfter = Number(response.headers.get('Retry-After')) || null;
+    throw cause;
+  }
+  payload.httpStatus = response.status;
   return payload;
 }
 
@@ -25,7 +32,7 @@ async function loadNotices() {
   try {
     const payload = await api('/api/editals');
     payload.data.forEach(notice => select.insertAdjacentHTML('beforeend', `<option value="${notice.id}">${escapeHtml(notice.file_name)} • ${escapeHtml(notice.status)}</option>`));
-  } catch (error) {
+  } catch {
     select.innerHTML = '<option value="">Análises anteriores indisponíveis</option>';
   }
 }
@@ -45,11 +52,46 @@ function clearFile() {
   selectedFile = null; byId('noticeFile').value = ''; byId('selectedFile').hidden = true; byId('analyzeButton').disabled = true;
 }
 
-function fail(message) { byId('errorMessage').textContent = message; show('errorState'); }
+function fail(message, code) { byId('errorMessage').textContent = code === 'rate_limit_exceeded' ? `${message} O limite protege o custo das análises.` : message; show('errorState'); }
+
+const statusCopy = {
+  uploaded: ['Upload concluído', 'Preparando o edital para leitura.', 1],
+  queued: ['Análise na fila', 'O documento foi aceito e aguarda processamento.', 1],
+  extracting: ['Lendo o documento', 'Extraindo texto e elementos visuais do PDF.', 1],
+  processing: ['Estruturando o edital', 'Identificando regras, disciplinas, tópicos e etapas.', 2],
+  normalizing: ['Normalizando tópicos', 'Relacionando o conteúdo com a taxonomia da Rota.', 3]
+};
+
+function updateProcessing(status) {
+  const [title, description, activeIndex] = statusCopy[status] || statusCopy.queued;
+  byId('processingTitle').textContent = title;
+  byId('processingMessage').textContent = description;
+  document.querySelectorAll('.processing-steps span').forEach((step, index) => {
+    step.classList.toggle('done', index < activeIndex);
+    step.classList.toggle('active', index === activeIndex);
+  });
+}
+
+const wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+async function pollAnalysis(id) {
+  const deadline = Date.now() + 4 * 60 * 1000;
+  let delay = 1200;
+  while (Date.now() < deadline) {
+    const payload = await api(`/api/editals/${id}/status`);
+    if (payload.httpStatus === 200 && payload.data.extractedData) return renderResult(payload.data);
+    updateProcessing(payload.data.status);
+    await wait(delay);
+    delay = Math.min(Math.round(delay * 1.25), 5000);
+  }
+  throw Object.assign(new Error('A análise continua em segundo plano. Selecione este edital em “Análises anteriores” dentro de alguns instantes.'), { code: 'processing_timeout' });
+}
 
 function renderResult(notice) {
   const data = notice.extractedData || notice.extracted_data;
   if (!data) return fail('Esta análise ainda não possui dados extraídos.');
+  const reviewStatus = notice.reviewStatus || notice.review_status || 'pending';
+  byId('reviewStatusChip').textContent = reviewStatus === 'approved' ? 'Revisado' : reviewStatus === 'rejected' ? 'Rejeitado' : 'Revisão necessária';
   byId('resultTitle').textContent = [data.orgao, data.cargo].filter(Boolean).join(' — ') || 'Edital analisado';
   const topicCount = (data.disciplinas || []).reduce((total, subject) => total + subject.topicos.length, 0);
   byId('resultMetrics').innerHTML = [
@@ -79,8 +121,10 @@ async function analyze() {
     byId('processingTitle').textContent = 'Entendendo seu edital';
     byId('processingMessage').textContent = 'Identificando regras, datas, disciplinas, tópicos e etapas.';
     const extracted = await api(`/api/editals/${uploaded.data.id}/extract`, { method: 'POST', body: '{}' });
-    renderResult(extracted.data);
-  } catch (error) { fail(error.message); }
+    if (extracted.data.extractedData) return renderResult(extracted.data);
+    updateProcessing(extracted.data.status);
+    await pollAnalysis(uploaded.data.id);
+  } catch (error) { fail(error.message, error.code); }
 }
 
 async function start() {
@@ -91,7 +135,7 @@ async function start() {
     ({ data: { session } } = await client.auth.getSession());
     if (!session) return show('loginState');
     show('workspaceState'); await loadNotices();
-  } catch (_) { show('configErrorState'); }
+  } catch { show('configErrorState'); }
 }
 
 byId('loginState').addEventListener('submit', async event => {
@@ -105,7 +149,7 @@ byId('clearFile').addEventListener('click', clearFile);
 byId('analyzeButton').addEventListener('click', analyze);
 byId('retryButton').addEventListener('click', () => show(session ? 'workspaceState' : 'loginState'));
 byId('newAnalysisButton').addEventListener('click', () => { clearFile(); show('workspaceState'); loadNotices(); });
-byId('existingNotices').addEventListener('change', async event => { if (!event.target.value) return; show('processingState'); try { const payload = await api(`/api/editals/${event.target.value}`); renderResult(payload.data); } catch (error) { fail(error.message); } });
+byId('existingNotices').addEventListener('change', async event => { if (!event.target.value) return; show('processingState'); try { const payload = await api(`/api/editals/${event.target.value}`); if (payload.data.extracted_data) return renderResult(payload.data); if (payload.data.status === 'failed') throw new Error('A análise anterior falhou. Envie o PDF novamente para tentar outra vez.'); updateProcessing(payload.data.status); await pollAnalysis(event.target.value); } catch (error) { fail(error.message, error.code); } });
 for (const eventName of ['dragenter', 'dragover']) byId('dropZone').addEventListener(eventName, event => { event.preventDefault(); byId('dropZone').classList.add('dragging'); });
 for (const eventName of ['dragleave', 'drop']) byId('dropZone').addEventListener(eventName, event => { event.preventDefault(); byId('dropZone').classList.remove('dragging'); if (eventName === 'drop') chooseFile(event.dataTransfer.files[0]); });
 start();

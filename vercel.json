@@ -4,7 +4,8 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "functions": {
-    "api/editals/[id]/extract.js": { "maxDuration": 60 }
+    "api/editals/[id]/extract.js": { "maxDuration": 30 },
+    "api/editals/[id]/status.js": { "maxDuration": 30 }
   },
   "headers": [
     {

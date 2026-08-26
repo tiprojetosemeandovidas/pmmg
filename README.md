@@ -51,7 +51,7 @@ O esquema ativa Row Level Security e isola perfil, sessões e prioridades pelo u
 
 ### Edital Engine (Fase 2)
 
-A página `/analisar-edital` oferece login por link mágico, upload direto e assinado para um bucket privado e extração estruturada. PDFs são limitados a 10 MB e validados novamente no servidor antes do registro. Toda extração fica com revisão obrigatória; usuários com papel `admin` ou `content_reviewer` podem revisar em `/admin`.
+A página `/analisar-edital` oferece login por link mágico, upload direto e assinado para um bucket privado e extração estruturada assíncrona. PDFs são limitados a 10 MB e validados novamente no servidor antes do registro. Toda extração fica com revisão obrigatória; usuários com papel `admin` ou `content_reviewer` podem revisar em `/admin`.
 
 Além das variáveis públicas acima, configure somente no ambiente server-side:
 
@@ -61,14 +61,28 @@ OPENAI_API_KEY
 OPENAI_EDITAL_MODEL
 ```
 
-O modelo pode ser substituído sem alterar o extrator. A API usa Structured Outputs e valida novamente datas, tipos, disciplinas e confiança antes de persistir. O rate limit atual protege cada instância serverless; antes de alto volume, substitua-o por um armazenamento distribuído.
+O modelo pode ser substituído sem alterar o extrator. A API usa Structured Outputs e valida novamente datas, tipos, disciplinas e confiança antes de persistir. O processamento usa o modo background da OpenAI, polling curto e exclusão best effort da resposta após a normalização. O rate limit é atômico no PostgreSQL e limita o custo mesmo com várias instâncias serverless.
 
 Conceda revisão somente pelo SQL Editor ou por outro processo administrativo confiável, nunca pelo frontend:
 
 ```sql
 insert into public.user_roles (user_id, role)
-values ('UUID_DO_USUARIO', 'content_reviewer');
+values ('UUID_DO_USUARIO', 'content_reviewer')
+on conflict do nothing;
 ```
+
+Depois de executar `supabase/schema.sql`, `001_multi_exam_foundation.sql` e `002_edital_engine.sql` no SQL Editor, execute `supabase/verify/002_edital_engine_check.sql`. O último arquivo é somente leitura e falha explicitamente se faltar tabela, coluna, bucket privado ou função de rate limit.
+
+## Qualidade
+
+O projeto usa npm e fixa a linha LTS Node.js 24.x:
+
+```bash
+npm install
+npm run check
+```
+
+`check` executa ESLint, verificação de tipos JavaScript com TypeScript, testes `node:test`, migrações em PostgreSQL efêmero e validação do build estático.
 
 ## Vercel
 

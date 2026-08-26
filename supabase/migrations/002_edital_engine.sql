@@ -11,7 +11,8 @@ create table if not exists public.notices (
   content_sha256 char(64) not null,
   storage_bucket text not null default 'editais-private',
   storage_path text not null unique,
-  status text not null default 'uploaded' check (status in ('uploaded', 'extracting', 'extracted', 'failed', 'approved', 'rejected')),
+  status text not null default 'uploaded' check (status in ('uploaded', 'queued', 'extracting', 'processing', 'normalizing', 'completed', 'needs_review', 'failed')),
+  review_status text not null default 'pending' check (review_status in ('pending', 'approved', 'rejected')),
   extraction_method text check (extraction_method in ('model_pdf', 'model_pdf_vision', 'manual')),
   extracted_data jsonb,
   extraction_confidence numeric(5,4) check (extraction_confidence is null or extraction_confidence between 0 and 1),
@@ -22,6 +23,18 @@ create table if not exists public.notices (
   updated_at timestamptz not null default now(),
   unique (user_id, content_sha256)
 );
+
+-- Mantém a migração reaplicável caso uma versão anterior da Fase 2 já tenha
+-- criado `notices` com um conjunto menor de estados.
+alter table public.notices add column if not exists review_status text not null default 'pending';
+alter table public.notices drop constraint if exists notices_status_check;
+update public.notices
+set review_status = case when status = 'approved' then 'approved' when status = 'rejected' then 'rejected' else review_status end,
+    status = case when status = 'extracted' then 'needs_review' when status in ('approved', 'rejected') then 'completed' else status end
+where status in ('extracted', 'approved', 'rejected');
+alter table public.notices add constraint notices_status_check check (status in ('uploaded', 'queued', 'extracting', 'processing', 'normalizing', 'completed', 'needs_review', 'failed'));
+alter table public.notices drop constraint if exists notices_review_status_check;
+alter table public.notices add constraint notices_review_status_check check (review_status in ('pending', 'approved', 'rejected'));
 
 create table if not exists public.user_roles (
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -39,7 +52,7 @@ create table if not exists public.notice_extraction_runs (
   user_id uuid not null references auth.users(id) on delete cascade,
   provider text not null,
   model text not null,
-  status text not null default 'started' check (status in ('started', 'completed', 'failed')),
+  status text not null default 'queued' check (status in ('queued', 'processing', 'completed', 'failed')),
   provider_request_id text,
   input_tokens integer check (input_tokens is null or input_tokens >= 0),
   output_tokens integer check (output_tokens is null or output_tokens >= 0),
@@ -47,6 +60,10 @@ create table if not exists public.notice_extraction_runs (
   started_at timestamptz not null default now(),
   completed_at timestamptz
 );
+
+alter table public.notice_extraction_runs drop constraint if exists notice_extraction_runs_status_check;
+update public.notice_extraction_runs set status = 'queued' where status = 'started';
+alter table public.notice_extraction_runs add constraint notice_extraction_runs_status_check check (status in ('queued', 'processing', 'completed', 'failed'));
 
 create index if not exists notice_runs_notice_idx on public.notice_extraction_runs(notice_id, started_at desc);
 
@@ -88,12 +105,52 @@ create table if not exists public.notice_topic_mappings (
 create index if not exists notice_topic_mappings_notice_idx on public.notice_topic_mappings(notice_id);
 create index if not exists notice_topic_mappings_topic_idx on public.notice_topic_mappings(topic_id) where topic_id is not null;
 
+create table if not exists public.api_rate_limits (
+  key_hash char(64) primary key,
+  hit_count integer not null check (hit_count > 0),
+  reset_at timestamptz not null,
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.consume_rate_limit(p_key_hash char(64), p_limit integer, p_window_seconds integer)
+returns table (allowed boolean, remaining integer, retry_after_seconds integer)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_count integer;
+  current_reset timestamptz;
+begin
+  if p_limit < 1 or p_window_seconds < 1 then
+    raise exception 'invalid rate limit configuration';
+  end if;
+
+  insert into public.api_rate_limits as limits (key_hash, hit_count, reset_at, updated_at)
+  values (p_key_hash, 1, now() + make_interval(secs => p_window_seconds), now())
+  on conflict (key_hash) do update
+  set hit_count = case when limits.reset_at <= now() then 1 else limits.hit_count + 1 end,
+      reset_at = case when limits.reset_at <= now() then now() + make_interval(secs => p_window_seconds) else limits.reset_at end,
+      updated_at = now()
+  returning hit_count, reset_at into current_count, current_reset;
+
+  return query select
+    current_count <= p_limit,
+    greatest(p_limit - current_count, 0),
+    greatest(ceil(extract(epoch from (current_reset - now())))::integer, 0);
+end;
+$$;
+
+revoke all on function public.consume_rate_limit(char, integer, integer) from public;
+grant execute on function public.consume_rate_limit(char, integer, integer) to service_role;
+
 alter table public.notices enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.notice_extraction_runs enable row level security;
 alter table public.notice_stages enable row level security;
 alter table public.notice_chunks enable row level security;
 alter table public.notice_topic_mappings enable row level security;
+alter table public.api_rate_limits enable row level security;
 
 drop policy if exists "notices_select_own" on public.notices;
 create policy "notices_select_own" on public.notices for select using (auth.uid() = user_id);
