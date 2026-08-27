@@ -20,6 +20,14 @@
   ordenadas, fatores explicáveis e justificativa; usuário temporário removido.
 - Produção: `https://rota-pmmg.vercel.app`.
 
+## Auditoria posterior
+
+Foram corrigidos dois defeitos antes da Fase 6: relevância zero recebia o
+fallback médio indevidamente e a atualização do snapshot ocorria em duas
+gravações sujeitas a concorrência. A migration `007` introduziu substituição
+transacional; `GET` passou a ser somente leitura e `POST` passou a representar
+explicitamente o recálculo.
+
 ## Fórmula inicial
 
 O score usa 55% da lacuna de domínio, até 15 pontos de incerteza, até 20 pontos

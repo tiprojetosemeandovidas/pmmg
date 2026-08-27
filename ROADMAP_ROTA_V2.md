@@ -91,7 +91,7 @@ Dados demonstrativos deverão ser marcados como demonstração e removidos das m
 | 3 | Question Engine, origens, alternativas e tópicos | API/UI de questões e importador | options, topics, sources, validation | Alto | ✅ Concluído — migration, deploy e E2E autenticado validados em produção |
 | 4 | Candidate Model | serviços de respostas/mastery | user_answers, topic_mastery, diagnostics | Alto | ✅ Concluído — hardening idempotente, login, catálogo autoral, deploy e E2E autenticado validados em produção |
 | 5 | Adaptive Engine explicável | `lib/domain/adaptive*`, API e testes | recommendations e reasons | Alto | ✅ Concluído — fórmula versionada, fatores auditáveis, dashboard, Supabase, deploy e E2E validados |
-| 6 | Planejador e revisão adaptativos | API/UI de plano e revisões | plans, tasks, review_queue | Alto | ❌ Pendente |
+| 6 | Planejador e revisão adaptativos | API/UI de plano e revisões | plans, tasks, review_queue | Alto | ✅ Concluído — plano semanal, tarefas, revisões 1/7/15/30, RLS, deploy e E2E validados |
 | 7 | Rota Score e dashboard real | componentes do dashboard e testes | rota_scores | Médio | ❌ Pendente |
 | 8 | Mentor IA com ferramentas e fontes | `lib/ai/mentor*`, endpoint e UI | ai_interactions, citations | Alto | ❌ Pendente |
 | 9 | Compatibilidade e oportunidades | serviço, endpoint e UI | índices/materializações se necessários | Médio | ❌ Pendente |
