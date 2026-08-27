@@ -58,10 +58,14 @@ async function completeDiagnostic(request, response, user) {
   if (request.method !== 'POST') return error(response, 405, 'method_not_allowed', 'Método não permitido.');
   const id = one((request.query || {}).id);
   if (!UUID.test(id || '')) return error(response, 400, 'invalid_id', 'Diagnóstico inválido.');
-  const sessions = await rest(`diagnostic_sessions?id=eq.${id}&user_id=eq.${user.id}&status=eq.in_progress&select=id,answered_count,correct_count&limit=1`);
+  const sessions = await rest(`diagnostic_sessions?id=eq.${id}&user_id=eq.${user.id}&status=eq.in_progress&select=id,question_count,answered_count,correct_count&limit=1`);
   if (!sessions.length) return error(response, 404, 'diagnostic_not_found', 'Diagnóstico não encontrado.');
-  if (!sessions[0].answered_count) return error(response, 409, 'diagnostic_empty', 'Responda ao menos uma questão antes de concluir.');
-  const rows = await rest(`topic_mastery?user_id=eq.${user.id}&questions_answered=gt.0&select=topic_id,mastery_score,confidence,questions_answered,topics(name,subjects(name))&order=mastery_score.asc&limit=5`);
+  if (sessions[0].answered_count < sessions[0].question_count) return error(response, 409, 'diagnostic_incomplete', `Responda as ${sessions[0].question_count} questões antes de concluir.`);
+  const answers = await rest(`user_answers?user_id=eq.${user.id}&diagnostic_session_id=eq.${id}&select=question_id`);
+  const questionIds = [...new Set(answers.map(item => item.question_id))];
+  const mappings = questionIds.length ? await rest(`question_topics?question_id=in.(${questionIds.join(',')})&select=topic_id`) : [];
+  const topicIds = [...new Set(mappings.map(item => item.topic_id))];
+  const rows = topicIds.length ? await rest(`topic_mastery?user_id=eq.${user.id}&topic_id=in.(${topicIds.join(',')})&questions_answered=gt.0&select=topic_id,mastery_score,confidence,questions_answered,topics(name,subjects(name))&order=mastery_score.asc&limit=5`) : [];
   const score = Math.round(sessions[0].correct_count * 10000 / sessions[0].answered_count) / 100;
   const priorities = rows.slice(0, 3).map(item => ({ topicId: item.topic_id, topic: item.topics && item.topics.name, subject: item.topics && item.topics.subjects && item.topics.subjects.name, score: Number(item.mastery_score) }));
   const result = { score, answeredCount: sessions[0].answered_count, correctCount: sessions[0].correct_count, priorityTopics: priorities, modelVersion: 'candidate-v1' };
@@ -81,7 +85,7 @@ module.exports = async function handler(request, response) {
     if (selected === 'diagnostic-complete') return await completeDiagnostic(request, response, user);
     return error(response, 404, 'candidate_action_not_found', 'Ação não encontrada.');
   } catch (cause) {
-    const known = { question_not_available: [404, 'Questão indisponível.'], invalid_selected_option: [422, 'Alternativa inválida.'], diagnostic_not_available: [409, 'Diagnóstico indisponível.'] };
+    const known = { question_not_available: [404, 'Questão indisponível.'], invalid_selected_option: [422, 'Alternativa inválida.'], diagnostic_not_available: [409, 'Diagnóstico indisponível.'], diagnostic_full: [409, 'O diagnóstico já recebeu todas as respostas.'], diagnostic_question_already_answered: [409, 'Esta questão já foi respondida neste diagnóstico.'], idempotency_conflict: [409, 'A chave da tentativa já foi usada com outro conteúdo.'] };
     const match = Object.entries(known).find(([key]) => cause.message && cause.message.includes(key));
     if (match) return error(response, match[1][0], match[0], match[1][1]);
     return handleError(response, cause, 'candidate_request_failed', 'Não foi possível processar a solicitação do candidato.');

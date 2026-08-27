@@ -40,3 +40,25 @@ test('rejeita resposta sem autenticação', async () => {
   await handler({ method: 'POST', headers: {}, query: { action: 'answer' }, body: {} }, res);
   assert.equal(res.statusCode, 401);
 });
+
+test('não expõe gabarito quando a chave idempotente conflita', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async url => {
+    if (url.endsWith('/auth/v1/user')) return new Response(JSON.stringify({ id: 'user-1' }), { status: 200 });
+    if (url.endsWith('/rest/v1/rpc/record_question_answer')) {
+      return new Response(JSON.stringify({ message: 'idempotency_conflict' }), { status: 400 });
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  try {
+    const handler = require('../api/candidate');
+    const res = response();
+    await handler({ method: 'POST', headers: { authorization: 'Bearer token' }, query: { action: 'answer' }, body: {
+      questionId: '11111111-1111-4111-8111-111111111111', selectedOption: 1,
+      idempotencyKey: '22222222-2222-4222-8222-222222222222'
+    } }, res);
+    assert.equal(res.statusCode, 409);
+    assert.equal(res.body.error.code, 'idempotency_conflict');
+    assert.equal(JSON.stringify(res.body).includes('correctOption'), false);
+  } finally { global.fetch = originalFetch; }
+});

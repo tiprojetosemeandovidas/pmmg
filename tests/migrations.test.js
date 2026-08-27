@@ -42,6 +42,9 @@ test('aplica schema e migrações, reaplica Fases 2 a 4 e verifica objetos', { t
   await db.exec(sql('supabase/migrations/004_candidate_model.sql'));
   await db.exec(sql('supabase/migrations/004_candidate_model.sql'));
   await db.exec(sql('supabase/verify/004_candidate_model_check.sql'));
+  await db.exec(sql('supabase/migrations/005_candidate_model_hardening.sql'));
+  await db.exec(sql('supabase/migrations/005_candidate_model_hardening.sql'));
+  await db.exec(sql('supabase/verify/005_candidate_model_hardening_check.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);

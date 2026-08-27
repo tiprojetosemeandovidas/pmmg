@@ -6,7 +6,7 @@
     "node": "24.x"
   },
   "scripts": {
-    "lint": "eslint api lib public/*.js tests scripts/validate-build.js",
+    "lint": "eslint api lib public/*.js tests scripts/*.js",
     "typecheck": "tsc --noEmit",
     "test": "node --test --test-isolation=none",
     "build": "node scripts/validate-build.js",
