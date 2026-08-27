@@ -67,10 +67,17 @@ async function main() {
     const mastery = await json(`${appUrl}/api/candidate/mastery`, { headers: auth });
     assert.equal(mastery.status, 200);
     assert.equal(mastery.body.summary.evidenceCount, 5);
+    const recommendations = await json(`${appUrl}/api/recommendations?limit=3`, { headers: auth });
+    assert.equal(recommendations.status, 200);
+    assert.equal(recommendations.body.summary.modelVersion, 'adaptive-v1');
+    assert.ok(recommendations.body.data.length > 0);
+    assert.equal(recommendations.body.data[0].rank, 1);
+    assert.ok(recommendations.body.data[0].reason.length > 30);
+    assert.ok(Object.hasOwn(recommendations.body.data[0].factors, 'masteryGap'));
     const completed = await json(`${appUrl}/api/diagnostics/${sessionId}/complete`, { method: 'POST', headers: auth });
     assert.equal(completed.status, 200);
     assert.equal(completed.body.data.result.answeredCount, 5);
-    process.stdout.write('E2E produção aprovado: catálogo, diagnóstico, idempotência, domínio e conclusão.\n');
+    process.stdout.write('E2E produção aprovado: diagnóstico, domínio e Adaptive Engine explicável.\n');
   } finally {
     if (userId) await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, { method: 'DELETE', headers: {
       apikey: serviceKey, Authorization: `Bearer ${serviceKey}`

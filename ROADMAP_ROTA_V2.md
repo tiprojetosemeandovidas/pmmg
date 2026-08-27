@@ -90,7 +90,7 @@ Dados demonstrativos deverão ser marcados como demonstração e removidos das m
 | 2 | Edital Engine, upload privado, extração validada e revisão | `api/editals/*`, `api/admin/editals/*`, `lib/ai/*`, `public/analisar-edital.html`, `public/admin.html` | notices, chunks, extraction runs, stages e mapeamentos | Alto | 🟡 Parcial — banco, Vercel, autenticação e APIs validados; extração por IA aguarda `OPENAI_API_KEY` |
 | 3 | Question Engine, origens, alternativas e tópicos | API/UI de questões e importador | options, topics, sources, validation | Alto | ✅ Concluído — migration, deploy e E2E autenticado validados em produção |
 | 4 | Candidate Model | serviços de respostas/mastery | user_answers, topic_mastery, diagnostics | Alto | ✅ Concluído — hardening idempotente, login, catálogo autoral, deploy e E2E autenticado validados em produção |
-| 5 | Adaptive Engine explicável | `lib/domain/adaptive*`, API e testes | recommendations e reasons | Alto | ❌ Pendente |
+| 5 | Adaptive Engine explicável | `lib/domain/adaptive*`, API e testes | recommendations e reasons | Alto | ✅ Concluído — fórmula versionada, fatores auditáveis, dashboard, Supabase, deploy e E2E validados |
 | 6 | Planejador e revisão adaptativos | API/UI de plano e revisões | plans, tasks, review_queue | Alto | ❌ Pendente |
 | 7 | Rota Score e dashboard real | componentes do dashboard e testes | rota_scores | Médio | ❌ Pendente |
 | 8 | Mentor IA com ferramentas e fontes | `lib/ai/mentor*`, endpoint e UI | ai_interactions, citations | Alto | ❌ Pendente |
