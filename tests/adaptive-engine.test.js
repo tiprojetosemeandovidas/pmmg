@@ -33,3 +33,8 @@ test('recomenda revisão quando há domínio e evidência suficientes', () => {
   assert.equal(result.action, 'review');
   assert.equal(result.reasonCode, 'adaptive_v1.review');
 });
+
+test('preserva relevância zero sem aplicar o fallback médio', () => {
+  const [result] = buildRecommendations([topic({ examRelevance: 0 })]);
+  assert.equal(result.factors.examRelevance, 0);
+});

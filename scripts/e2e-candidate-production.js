@@ -67,17 +67,34 @@ async function main() {
     const mastery = await json(`${appUrl}/api/candidate/mastery`, { headers: auth });
     assert.equal(mastery.status, 200);
     assert.equal(mastery.body.summary.evidenceCount, 5);
-    const recommendations = await json(`${appUrl}/api/recommendations?limit=3`, { headers: auth });
+    const recommendations = await json(`${appUrl}/api/recommendations?limit=3`, { method: 'POST', headers: auth });
     assert.equal(recommendations.status, 200);
     assert.equal(recommendations.body.summary.modelVersion, 'adaptive-v1');
     assert.ok(recommendations.body.data.length > 0);
     assert.equal(recommendations.body.data[0].rank, 1);
     assert.ok(recommendations.body.data[0].reason.length > 30);
     assert.ok(Object.hasOwn(recommendations.body.data[0].factors, 'masteryGap'));
+    const recommendationRead = await json(`${appUrl}/api/recommendations?limit=3`, { headers: auth });
+    assert.equal(recommendationRead.status, 200);
+    assert.equal(recommendationRead.body.data[0].topicId, recommendations.body.data[0].topicId);
+    const plan = await json(`${appUrl}/api/plan`, { method: 'POST', headers: auth });
+    assert.equal(plan.status, 201);
+    assert.ok(plan.body.data.tasks.length >= 3);
+    assert.ok(plan.body.data.tasks.every(task => task.reason && task.plannedMinutes >= 20));
+    const completedTask = await json(`${appUrl}/api/plan/tasks/${plan.body.data.tasks[0].id}`, { method: 'PATCH', headers: auth,
+      body: JSON.stringify({ status: 'completed' }) });
+    assert.equal(completedTask.status, 200);
+    assert.equal(completedTask.body.data.status, 'completed');
+    const reviews = await json(`${appUrl}/api/reviews`, { headers: auth });
+    assert.equal(reviews.status, 200);
+    assert.ok(reviews.body.data.length > 0);
+    const advanced = await json(`${appUrl}/api/reviews/${reviews.body.data[0].id}/advance`, { method: 'POST', headers: auth });
+    assert.equal(advanced.status, 200);
+    assert.ok(advanced.body.data.interval_step >= 2 || advanced.body.data.status === 'completed');
     const completed = await json(`${appUrl}/api/diagnostics/${sessionId}/complete`, { method: 'POST', headers: auth });
     assert.equal(completed.status, 200);
     assert.equal(completed.body.data.result.answeredCount, 5);
-    process.stdout.write('E2E produção aprovado: diagnóstico, domínio e Adaptive Engine explicável.\n');
+    process.stdout.write('E2E produção aprovado: auditoria adaptativa, plano semanal e fila de revisões.\n');
   } finally {
     if (userId) await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, { method: 'DELETE', headers: {
       apikey: serviceKey, Authorization: `Bearer ${serviceKey}`

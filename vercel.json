@@ -8,6 +8,10 @@
     { "source": "/api/answers", "destination": "/api/candidate?action=answer" },
     { "source": "/api/candidate/mastery", "destination": "/api/candidate?action=mastery" },
     { "source": "/api/recommendations", "destination": "/api/candidate?action=recommendations" },
+    { "source": "/api/plan", "destination": "/api/candidate?action=plan" },
+    { "source": "/api/plan/tasks/:id", "destination": "/api/candidate?action=plan-task&id=:id" },
+    { "source": "/api/reviews", "destination": "/api/candidate?action=reviews" },
+    { "source": "/api/reviews/:id/advance", "destination": "/api/candidate?action=review-advance&id=:id" },
     { "source": "/api/diagnostics", "destination": "/api/candidate?action=diagnostics" },
     { "source": "/api/diagnostics/:id/complete", "destination": "/api/candidate?action=diagnostic-complete&id=:id" }
   ],

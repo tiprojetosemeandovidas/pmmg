@@ -9,7 +9,7 @@ const { PGlite } = require('@electric-sql/pglite');
 const root = path.resolve(__dirname, '..');
 const sql = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('aplica schema e migrações, reaplica Fases 2 a 5 e verifica objetos', { timeout: 30000 }, async () => {
+test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { timeout: 30000 }, async () => {
   const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
   const db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(`
@@ -48,6 +48,12 @@ test('aplica schema e migrações, reaplica Fases 2 a 5 e verifica objetos', { t
   await db.exec(sql('supabase/migrations/006_adaptive_engine.sql'));
   await db.exec(sql('supabase/migrations/006_adaptive_engine.sql'));
   await db.exec(sql('supabase/verify/006_adaptive_engine_check.sql'));
+  await db.exec(sql('supabase/migrations/007_adaptive_engine_hardening.sql'));
+  await db.exec(sql('supabase/migrations/007_adaptive_engine_hardening.sql'));
+  await db.exec(sql('supabase/verify/007_adaptive_engine_hardening_check.sql'));
+  await db.exec(sql('supabase/migrations/008_adaptive_planner.sql'));
+  await db.exec(sql('supabase/migrations/008_adaptive_planner.sql'));
+  await db.exec(sql('supabase/verify/008_adaptive_planner_check.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);
@@ -68,5 +74,8 @@ test('aplica schema e migrações, reaplica Fases 2 a 5 e verifica objetos', { t
   assert.ok(candidateTables.rows.every(row => row.rowsecurity));
   const adaptiveTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename = 'adaptive_recommendations'");
   assert.deepEqual(adaptiveTables.rows[0], { tablename: 'adaptive_recommendations', rowsecurity: true });
+  const plannerTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('study_plans','plan_tasks','review_queue') order by tablename");
+  assert.equal(plannerTables.rows.length, 3);
+  assert.ok(plannerTables.rows.every(row => row.rowsecurity));
   await db.close();
 });

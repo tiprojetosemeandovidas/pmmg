@@ -25,3 +25,4 @@
 @media(max-width:760px){.simulation-grid{grid-template-columns:1fr}.archive-list{grid-template-columns:1fr}.sim-summary{align-items:flex-start;gap:15px}.sim-summary>div>span{display:none}}
 .question-tags .question-origin{background:#e5f0e6;color:#296c50;font-weight:700}.question-tags .ai-origin{background:#ece7f3;color:#705b91}
 .priority-list button.priority-item{width:100%;border-right:0;border-bottom:0;border-left:0;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}
+.week-list button.day{width:100%;border-right:0;border-bottom:0;border-left:0;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}
