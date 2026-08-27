@@ -11,7 +11,7 @@ const required = [
   'api/editals/[id].js', 'api/editals/[id]/extract.js', 'api/editals/[id]/status.js',
   'api/admin/editals/index.js', 'api/admin/editals/[id].js',
   'api/questions/index.js', 'api/admin/questions/index.js', 'api/admin/questions/[id].js',
-  'api/answers/index.js', 'api/candidate/mastery.js', 'api/diagnostics/index.js', 'api/diagnostics/[id]/complete.js',
+  'api/candidate.js',
   'supabase/migrations/001_multi_exam_foundation.sql', 'supabase/migrations/002_edital_engine.sql',
   'supabase/migrations/003_question_engine.sql', 'supabase/verify/003_question_engine_check.sql',
   'supabase/migrations/004_candidate_model.sql', 'supabase/verify/004_candidate_model_check.sql'

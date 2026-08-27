@@ -22,9 +22,9 @@ test('registra resposta autenticada e retorna resultado da tentativa', async () 
     throw new Error(`URL inesperada: ${url}`);
   };
   try {
-    const handler = require('../api/answers/index');
+    const handler = require('../api/candidate');
     const res = response();
-    await handler({ method: 'POST', headers: { authorization: 'Bearer token' }, body: {
+    await handler({ method: 'POST', headers: { authorization: 'Bearer token' }, query: { action: 'answer' }, body: {
       questionId: '11111111-1111-4111-8111-111111111111', selectedOption: 1,
       idempotencyKey: '22222222-2222-4222-8222-222222222222', responseTimeMs: 9000
     } }, res);
@@ -35,8 +35,8 @@ test('registra resposta autenticada e retorna resultado da tentativa', async () 
 });
 
 test('rejeita resposta sem autenticação', async () => {
-  const handler = require('../api/answers/index');
+  const handler = require('../api/candidate');
   const res = response();
-  await handler({ method: 'POST', headers: {}, body: {} }, res);
+  await handler({ method: 'POST', headers: {}, query: { action: 'answer' }, body: {} }, res);
   assert.equal(res.statusCode, 401);
 });

@@ -3,6 +3,13 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    { "source": "/api/config", "destination": "/api/candidate?action=config" },
+    { "source": "/api/answers", "destination": "/api/candidate?action=answer" },
+    { "source": "/api/candidate/mastery", "destination": "/api/candidate?action=mastery" },
+    { "source": "/api/diagnostics", "destination": "/api/candidate?action=diagnostics" },
+    { "source": "/api/diagnostics/:id/complete", "destination": "/api/candidate?action=diagnostic-complete&id=:id" }
+  ],
   "functions": {
     "api/editals/[id]/extract.js": { "maxDuration": 30 },
     "api/editals/[id]/status.js": { "maxDuration": 30 }
