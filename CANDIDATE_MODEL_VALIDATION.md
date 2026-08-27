@@ -20,6 +20,18 @@
 4. Conta e conteúdo temporários do E2E removidos ao final.
 5. Deployment de produção responde com autenticação e autorização esperadas.
 
+## Resultado em produção
+
+- Migration e verificador executados no Supabase `pmmg` em 27/08/2026.
+- `npm run check`: 43 testes aprovados, lint, typecheck e build sem erros.
+- E2E real aprovado: diagnóstico `201`, catálogo autenticado `200`, primeira
+  resposta `201`, retry idempotente `200`, domínio `100/100` com uma evidência
+  e conclusão diagnóstica `200`.
+- Usuário, questão e taxonomia temporários removidos ao final do teste.
+- API consolidada em uma Function para respeitar o limite de 12 Functions do
+  plano Hobby da Vercel, preservando as rotas públicas por rewrites.
+- Produção: `https://rota-pmmg.vercel.app`.
+
 ## Modelo inicial
 
 `candidate-v1` usa acurácia acumulada por tópico e confiança crescente até 20

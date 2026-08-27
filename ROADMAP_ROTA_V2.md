@@ -89,7 +89,7 @@ Dados demonstrativos deverão ser marcados como demonstração e removidos das m
 | 1 | Fundação multi-concurso e taxonomia universal | `supabase/migrations/001_multi_exam_foundation.sql`, `supabase/schema.sql`, documentação | organizations, positions, boards, subjects, topics, exams, user_exams e vínculos | Médio | ✅ Concluído — migration aplicada e verificada no Supabase remoto |
 | 2 | Edital Engine, upload privado, extração validada e revisão | `api/editals/*`, `api/admin/editals/*`, `lib/ai/*`, `public/analisar-edital.html`, `public/admin.html` | notices, chunks, extraction runs, stages e mapeamentos | Alto | 🟡 Parcial — banco, Vercel, autenticação e APIs validados; extração por IA aguarda `OPENAI_API_KEY` |
 | 3 | Question Engine, origens, alternativas e tópicos | API/UI de questões e importador | options, topics, sources, validation | Alto | ✅ Concluído — migration, deploy e E2E autenticado validados em produção |
-| 4 | Candidate Model | serviços de respostas/mastery | user_answers, topic_mastery, diagnostics | Alto | 🟡 Em validação — migration remota e suíte local concluídas; E2E de produção pendente |
+| 4 | Candidate Model | serviços de respostas/mastery | user_answers, topic_mastery, diagnostics | Alto | ✅ Concluído — migration, suíte, deploy e E2E autenticado validados em produção |
 | 5 | Adaptive Engine explicável | `lib/domain/adaptive*`, API e testes | recommendations e reasons | Alto | ❌ Pendente |
 | 6 | Planejador e revisão adaptativos | API/UI de plano e revisões | plans, tasks, review_queue | Alto | ❌ Pendente |
 | 7 | Rota Score e dashboard real | componentes do dashboard e testes | rota_scores | Médio | ❌ Pendente |
