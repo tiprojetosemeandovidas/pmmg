@@ -12,12 +12,13 @@
 - API autenticada entrega apenas questões publicadas e validadas e não expõe `correct_option`.
 - Interface distingue visualmente a origem e usa o banco quando há sessão, preservando o acervo local como fallback.
 
-## Aplicação manual
+## Aplicação em produção
 
-1. Execute `supabase/migrations/003_question_engine.sql` no SQL Editor após `002_edital_engine.sql`.
-2. Execute `supabase/verify/003_question_engine_check.sql`.
-3. Faça novo deploy na Vercel; não há novas variáveis de ambiente.
-4. Importe um lote de teste como `content_reviewer`, valide uma questão e confirme sua exibição autenticada.
+- Migrações `001`, `002` e `003` aplicadas ao projeto Supabase `pmmg` em 27/08/2026.
+- Verificadores das Fases 2 e 3 executados sem erro no banco remoto.
+- Produção publicada na Vercel com Supabase URL, chave anônima e `service_role` sincronizadas como variáveis sensíveis.
+- E2E validado com usuário temporário: login, leitura de questões, editais, papel `content_reviewer` e fila administrativa; a conta temporária foi removida ao final.
+- URL canônica desta implantação: `https://rota-pmmg.vercel.app`.
 
 ## Limite da fase
 
