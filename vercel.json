@@ -7,6 +7,7 @@
     { "source": "/api/config", "destination": "/api/candidate?action=config" },
     { "source": "/api/answers", "destination": "/api/candidate?action=answer" },
     { "source": "/api/candidate/mastery", "destination": "/api/candidate?action=mastery" },
+    { "source": "/api/recommendations", "destination": "/api/candidate?action=recommendations" },
     { "source": "/api/diagnostics", "destination": "/api/candidate?action=diagnostics" },
     { "source": "/api/diagnostics/:id/complete", "destination": "/api/candidate?action=diagnostic-complete&id=:id" }
   ],

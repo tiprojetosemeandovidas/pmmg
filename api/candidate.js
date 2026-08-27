@@ -3,6 +3,7 @@
 const { error, handleError, json, readJson } = require('../lib/http');
 const { UUID, validateAnswer } = require('../lib/candidate-schema');
 const { authenticate, rest } = require('../lib/supabase-server');
+const { buildRecommendations } = require('../lib/domain/adaptive-engine');
 
 function one(value) { return Array.isArray(value) ? value[0] : value; }
 function action(request) { return one((request.query || {}).action) || ''; }
@@ -74,6 +75,39 @@ async function completeDiagnostic(request, response, user) {
   return json(response, 200, { data: updated[0] });
 }
 
+async function recommendations(request, response, user) {
+  if (request.method !== 'GET') return error(response, 405, 'method_not_allowed', 'Método não permitido.');
+  const requestedLimit = Number(one((request.query || {}).limit) || 5);
+  const limit = Number.isInteger(requestedLimit) ? Math.max(1, Math.min(10, requestedLimit)) : 5;
+  const masteryRows = await rest(`topic_mastery?user_id=eq.${user.id}&questions_answered=gt.0&select=topic_id,mastery_score,confidence,questions_answered,correct_answers,wrong_answers,topics(stable_code,name,subjects(name))`);
+  if (!masteryRows.length) return json(response, 200, { data: [], summary: { modelVersion: 'adaptive-v1', evidenceCount: 0, generatedAt: null } });
+  const userExams = await rest(`user_exams?user_id=eq.${user.id}&status=in.(primary,secondary)&select=exam_id,status&order=priority.asc&limit=1`);
+  const examId = userExams.length ? userExams[0].exam_id : null;
+  const topicIds = masteryRows.map(row => row.topic_id);
+  const mappings = examId ? await rest(`exam_topics?exam_id=eq.${examId}&topic_id=in.(${topicIds.join(',')})&select=topic_id,weight,historical_frequency`) : [];
+  const relevance = new Map(mappings.map(item => [item.topic_id, item.historical_frequency == null ? (item.weight == null ? 0.5 : Math.min(1, Number(item.weight) / 100)) : Number(item.historical_frequency)]));
+  const generated = buildRecommendations(masteryRows.map(row => ({ topicId: row.topic_id,
+    topicCode: row.topics && row.topics.stable_code, topic: row.topics && row.topics.name,
+    subject: row.topics && row.topics.subjects && row.topics.subjects.name,
+    masteryScore: Number(row.mastery_score), confidence: Number(row.confidence),
+    questionsAnswered: row.questions_answered, correctAnswers: row.correct_answers,
+    wrongAnswers: row.wrong_answers, examId, examRelevance: relevance.get(row.topic_id) ?? 0.5 })), { limit });
+  const now = new Date().toISOString();
+  await rest(`adaptive_recommendations?user_id=eq.${user.id}&model_version=eq.adaptive-v1`, {
+    method: 'PATCH', body: JSON.stringify({ status: 'dismissed', updated_at: now })
+  });
+  const persisted = generated.map(item => ({ user_id: user.id, topic_id: item.topicId, exam_id: item.examId,
+    rank: item.rank, action: item.action, priority_score: item.priorityScore, reason_code: item.reasonCode,
+    reason: item.reason, factors: item.factors, evidence: { masteryScore: item.masteryScore,
+      confidence: item.confidence, questionsAnswered: item.questionsAnswered }, model_version: 'adaptive-v1',
+    status: 'active', generated_at: now, updated_at: now }));
+  if (persisted.length) await rest('adaptive_recommendations?on_conflict=user_id,topic_id,model_version', {
+    method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify(persisted)
+  });
+  return json(response, 200, { data: generated, summary: { modelVersion: 'adaptive-v1',
+    evidenceCount: masteryRows.reduce((sum, row) => sum + row.questions_answered, 0), generatedAt: now } });
+}
+
 module.exports = async function handler(request, response) {
   const selected = action(request);
   if (selected === 'config') return json(response, 200, { supabaseUrl: process.env.SUPABASE_URL || '', supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '' });
@@ -83,6 +117,7 @@ module.exports = async function handler(request, response) {
     if (selected === 'mastery') return await mastery(request, response, user);
     if (selected === 'diagnostics') return await diagnostics(request, response, user);
     if (selected === 'diagnostic-complete') return await completeDiagnostic(request, response, user);
+    if (selected === 'recommendations') return await recommendations(request, response, user);
     return error(response, 404, 'candidate_action_not_found', 'Ação não encontrada.');
   } catch (cause) {
     const known = { question_not_available: [404, 'Questão indisponível.'], invalid_selected_option: [422, 'Alternativa inválida.'], diagnostic_not_available: [409, 'Diagnóstico indisponível.'], diagnostic_full: [409, 'O diagnóstico já recebeu todas as respostas.'], diagnostic_question_already_answered: [409, 'Esta questão já foi respondida neste diagnóstico.'], idempotency_conflict: [409, 'A chave da tentativa já foi usada com outro conteúdo.'] };

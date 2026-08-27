@@ -9,7 +9,7 @@ const { PGlite } = require('@electric-sql/pglite');
 const root = path.resolve(__dirname, '..');
 const sql = file => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('aplica schema e migrações, reaplica Fases 2 a 4 e verifica objetos', { timeout: 30000 }, async () => {
+test('aplica schema e migrações, reaplica Fases 2 a 5 e verifica objetos', { timeout: 30000 }, async () => {
   const { pgcrypto } = await import('@electric-sql/pglite/contrib/pgcrypto');
   const db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(`
@@ -45,6 +45,9 @@ test('aplica schema e migrações, reaplica Fases 2 a 4 e verifica objetos', { t
   await db.exec(sql('supabase/migrations/005_candidate_model_hardening.sql'));
   await db.exec(sql('supabase/migrations/005_candidate_model_hardening.sql'));
   await db.exec(sql('supabase/verify/005_candidate_model_hardening_check.sql'));
+  await db.exec(sql('supabase/migrations/006_adaptive_engine.sql'));
+  await db.exec(sql('supabase/migrations/006_adaptive_engine.sql'));
+  await db.exec(sql('supabase/verify/006_adaptive_engine_check.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);
@@ -63,5 +66,7 @@ test('aplica schema e migrações, reaplica Fases 2 a 4 e verifica objetos', { t
   const candidateTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('user_answers','diagnostic_sessions') order by tablename");
   assert.equal(candidateTables.rows.length, 2);
   assert.ok(candidateTables.rows.every(row => row.rowsecurity));
+  const adaptiveTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename = 'adaptive_recommendations'");
+  assert.deepEqual(adaptiveTables.rows[0], { tablename: 'adaptive_recommendations', rowsecurity: true });
   await db.close();
 });

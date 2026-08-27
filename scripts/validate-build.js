@@ -15,7 +15,8 @@ const required = [
   'supabase/migrations/001_multi_exam_foundation.sql', 'supabase/migrations/002_edital_engine.sql',
   'supabase/migrations/003_question_engine.sql', 'supabase/verify/003_question_engine_check.sql',
   'supabase/migrations/004_candidate_model.sql', 'supabase/verify/004_candidate_model_check.sql',
-  'supabase/migrations/005_candidate_model_hardening.sql', 'supabase/verify/005_candidate_model_hardening_check.sql'
+  'supabase/migrations/005_candidate_model_hardening.sql', 'supabase/verify/005_candidate_model_hardening_check.sql',
+  'supabase/migrations/006_adaptive_engine.sql', 'supabase/verify/006_adaptive_engine_check.sql'
 ];
 
 for (const file of required) assert.ok(fs.existsSync(path.join(root, file)), `Arquivo obrigatório ausente: ${file}`);
