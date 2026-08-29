@@ -1,0 +1,12 @@
+import type { Metadata } from "next";
+import type { Route } from "next";
+import { AuthForm } from "@/components/auth-form";
+
+export const metadata: Metadata = { title: "Entrar ou criar conta" };
+
+export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
+  const requestedNext = typeof params.next === "string" ? params.next : "/app";
+  const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/app";
+  return <AuthForm initialMode={params.mode === "signup" ? "signup" : "login"} next={next as Route} confirmationError={params.erro === "confirmacao"} />;
+}

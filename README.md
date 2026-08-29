@@ -1,35 +1,73 @@
-# Rota PMMG
+# Rota
 
-Protótipo responsivo de uma plataforma adaptativa de preparação para candidatos da PMMG, construído a partir do blueprint do piloto.
+Plataforma adaptativa de preparação para concursos públicos. A PMMG permanece como primeira vertical e acervo inicial, enquanto o núcleo do produto é nacional e multi-concurso.
+
+## Stack
+
+- Next.js 16 com App Router;
+- React 19;
+- TypeScript estrito;
+- autenticação por e-mail e Supabase SSR/client;
+- sincronização do estado adaptativo por usuário, com fallback local explícito;
+- Mentor IA com fontes, respostas estruturadas, limite diário e auditoria;
+- Opportunity Engine com compatibilidade explicável e trilhas acompanhadas;
+- TAF genérico com metas pessoais, histórico e gamificação saudável;
+- operação do piloto com planos internos, limites, request IDs e painel administrativo;
+- Zod para configuração;
+- Vitest para regras de domínio;
+- Vercel como destino de deploy.
 
 ## Executar
 
-Inicie um servidor apontando para a pasta pública:
-
 ```bash
-python3 -m http.server 8000 --directory public
+npm install
+npm run dev
 ```
 
-Depois acesse `http://localhost:8000`.
+Acesse `http://localhost:3000`.
 
-## Incluído
+Verificações disponíveis:
 
-- Dashboard do candidato responsivo
-- Próxima sessão e explicação da recomendação
-- Métricas de estudo e mapa de prioridades
-- Plano semanal e navegação entre módulos
-- Modal para iniciar sessão e feedbacks interativos
-- Páginas de plano, desempenho, questões, edital e ajuda
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
 
-Os dados são demonstrativos e não incluem conteúdo protegido de terceiros.
+## Arquitetura
 
-### Banco de questões
+- `app/`: rotas, layouts, páginas e endpoints do App Router;
+- `components/`: shell da aplicação, onboarding e providers;
+- `lib/domain/`: motor adaptativo puro, tipado e testável;
+- `lib/data/`: conteúdo autoral validado do diagnóstico;
+- `lib/supabase/`: clientes browser/server e validação de configuração;
+- `public/data/`: catálogo PMMG extraído;
+- `public/provas/`: cadernos oficiais preservados;
+- `supabase/schema.sql`: schema multi-concurso com RLS;
+- `scripts/`: importação auditável de provas.
 
-A interface organiza questões em cinco eixos, permite filtrar por concurso e dificuldade e oferece ordem aleatória. As questões iniciais são demonstrativas e autorais.
+## Fluxo implementado
 
-Para importar conteúdo real, use `supabase/questions-import-template.csv`. Cada prova deve ter URL de origem e referência de autorização. O banco bloqueia por padrão tudo que ainda não estiver com status `published`.
+- landing pública;
+- onboarding progressivo em cinco etapas;
+- jornada de escolha e modo pré-edital;
+- diagnóstico de dez questões;
+- domínio e confiança separados;
+- prioridade explicável e próxima melhor ação;
+- plano semanal recalculável;
+- Rota Score;
+- Caderno de Erros e revisão;
+- XP, nível e sequência;
+- rotas reais para plano, desempenho, Radar, oportunidades, Mentor IA, questões, simulados, TAF, editais e ajuda.
 
-O arquivo fornecido `PMMG_Provas_CFSD_CFO_2001-2025.zip` foi catalogado em `public/provas`: são 32 cadernos e 1.288 questões extraídas para `public/data/questions.json`. Como a marcação visual dos gabaritos não é preservada na extração dos PDFs, as questões oficiais permanecem com `reviewStatus: pending` e não contam pontos até conferência humana.
+Usuários autenticados sincronizam o estado adaptativo na tabela `candidate_states`. O `localStorage` funciona como cache offline por usuário e como fonte do modo demonstração; a aplicação nunca mistura automaticamente o estado remoto de duas contas.
+
+## Banco de questões
+
+O catálogo contém 32 provas e 1.288 questões PMMG em `public/data/questions.json`. As questões oficiais continuam com gabarito pendente e não pontuam até conferência humana. O diagnóstico utiliza dez questões autorais identificadas.
+
+A central `/app/admin/questoes` permite cadastrar questões manualmente ou pesquisar fontes públicas com Perplexity. Pesquisa, URLs, modelo, direitos declarados e autoria ficam separados e auditáveis. Conteúdo web gera apenas rascunhos autorais; publicação exige revisão humana e associação a prova/eixo.
 
 Para refazer a importação:
 
@@ -37,76 +75,48 @@ Para refazer a importação:
 python3 scripts/import_pmmg_pdfs.py /caminho/PMMG_Provas public/data
 ```
 
-A aba Simulados mistura as questões autorais semelhantes que possuem resposta revisada. Os cadernos oficiais podem ser filtrados por CFSD/CFO e abertos diretamente pela plataforma.
-
 ## Supabase
 
-1. Crie um projeto no Supabase.
-2. Abra o SQL Editor e execute `supabase/schema.sql`.
-3. Execute, em ordem, os arquivos de `supabase/migrations/` (começando por `001_multi_exam_foundation.sql`).
-4. Copie a Project URL e a chave `anon` pública em Project Settings → API.
-5. Configure `SUPABASE_URL` e `SUPABASE_ANON_KEY` na Vercel.
+1. Execute `supabase/schema.sql` no SQL Editor.
+   - Em um banco que já recebeu o schema anterior, execute apenas `supabase/migrations/20260827141000_candidate_states.sql`.
+   - Para ativar o Edital Engine, execute também `supabase/migrations/20260827180000_notice_engine.sql`.
+   - Para ativar o histórico do Mentor, execute `supabase/migrations/20260827200000_ai_mentor.sql`.
+   - Para ativar trilhas acompanhadas, execute `supabase/migrations/20260827220000_opportunity_engine.sql`.
+   - Para ativar TAF e conquistas, execute `supabase/migrations/20260827233000_taf_gamification.sql`.
+   - Para ativar operação, limites e planos, execute `supabase/migrations/20260828090000_pilot_operations.sql`.
+   - Para ativar a central de conhecimento, execute `supabase/migrations/20260828150000_question_knowledge_hub.sql`.
+2. Configure as variáveis documentadas em `.env.example`:
+   - `NEXT_PUBLIC_SUPABASE_URL`;
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+   - `PERPLEXITY_API_KEY` e, opcionalmente, `PERPLEXITY_MODEL=sonar` apenas no servidor.
+3. Nunca exponha a chave `service_role` no frontend.
 
-O esquema ativa Row Level Security e isola perfil, sessões e prioridades pelo usuário autenticado. Nunca exponha a chave `service_role` no frontend.
+O fluxo público está em `/entrar`. Cadastros com confirmação de e-mail retornam por `/auth/callback`; inclua a URL pública do projeto nas Redirect URLs permitidas no Supabase Auth.
 
-### Edital Engine (Fase 2)
+## Edital Engine
 
-A página `/analisar-edital` oferece login por link mágico, upload direto e assinado para um bucket privado e extração estruturada assíncrona. PDFs são limitados a 10 MB e validados novamente no servidor antes do registro. Toda extração fica com revisão obrigatória; usuários com papel `admin` ou `content_reviewer` podem revisar em `/admin`.
+Editais são enviados para um bucket privado, validados por assinatura e tamanho, deduplicados por SHA-256 e extraídos no servidor. Documentos sem camada textual recebem `needs_ocr`; os demais entram em `needs_review`. Somente perfis `reviewer` ou `admin` acessam `/app/admin/editais` e podem materializar uma submissão na tabela canônica `notices`.
 
-Além das variáveis públicas acima, configure somente no ambiente server-side:
+## Mentor IA
 
-```text
-SUPABASE_SERVICE_ROLE_KEY
-OPENAI_API_KEY
-OPENAI_EDITAL_MODEL
-```
+O endpoint `/api/mentor` usa a Responses API somente no servidor, com `store: false`, saída estruturada, identificador de segurança pseudonimizado e até 30 solicitações em uma janela de 24 horas. No MVP, o modelo padrão é o econômico `gpt-5.6-luna`, com esforço de raciocínio baixo para controlar custo e latência; ele pode ser trocado por `OPENAI_MODEL`. Cada resposta registra fontes, modelo, versão do prompt, tokens e latência em `ai_interactions`. Sem `OPENAI_API_KEY`, o Mentor mantém uma orientação determinística baseada no motor adaptativo e identifica esse modo na interface.
 
-O modelo pode ser substituído sem alterar o extrator. A API usa Structured Outputs e valida novamente datas, tipos, disciplinas e confiança antes de persistir. O processamento usa o modo background da OpenAI, polling curto e exclusão best effort da resposta após a normalização. O rate limit é atômico no PostgreSQL e limita o custo mesmo com várias instâncias serverless.
+## Opportunity Engine
 
-Conceda revisão somente pelo SQL Editor ou por outro processo administrativo confiável, nunca pelo frontend:
+A página `/app/oportunidades` compara trilhas de carreira por sobreposição curricular, interesses, formação, domínio observado e confiança das evidências. Compatibilidade, prontidão e elegibilidade são apresentadas separadamente. As trilhas são referências de preparação, não anúncios de concursos abertos; dados de edital continuam dependendo de validação oficial. Usuários autenticados podem acompanhar trilhas, e a pontuação gravada em `user_career_tracks` é recalculada exclusivamente pela API server-side.
 
-```sql
-insert into public.user_roles (user_id, role)
-values ('UUID_DO_USUARIO', 'content_reviewer')
-on conflict do nothing;
-```
+## TAF e gamificação
 
-Depois de executar `supabase/schema.sql`, `001_multi_exam_foundation.sql` e `002_edital_engine.sql` no SQL Editor, execute `supabase/verify/002_edital_engine_check.sql`. O último arquivo é somente leitura e falha explicitamente se faltar tabela, coluna, bucket privado ou função de rate limit.
+A página `/app/taf` acompanha cinco tipos genéricos de exercício, metas pessoais e medições históricas. Metas pessoais nunca recebem selo de requisito oficial; esse selo fica reservado a dados ligados a um edital validado. O dashboard calcula missões com progresso limitado ao volume planejado e libera conquistas por evidências reais, evitando recompensar excesso de carga. Dados físicos e conquistas são privados, protegidos por RLS e escritos somente pelas APIs server-side.
 
-### Question Engine (Fase 3)
+## Operação do piloto
 
-Em um banco já inicializado, execute `supabase/migrations/003_question_engine.sql` depois das migrations anteriores e valide com `supabase/verify/003_question_engine_check.sql`. A migration preserva `questions.options` para compatibilidade, cria alternativas normalizadas, relação muitos-para-muitos com tópicos, metadados de origem e busca textual em português.
+Planos e permissões ficam desacoplados do gateway de pagamento nas tabelas `subscription_plans` e `user_subscriptions`. Mentor e Edital Engine usam limites derivados do plano e registram consumo idempotente em `usage_events`. Requisições críticas recebem `x-request-id`; somente metadados operacionais, sem perguntas ou conteúdo de documentos, entram em `operational_events`. Administradores acessam `/app/admin/operacoes` para acompanhar falhas, latência, consumo, tokens e fila de revisão.
 
-Somente questões com `status = published` e `validation_status = validated` são entregues pela API autenticada `GET /api/questions`. O contrato público omite o gabarito. Questões oficiais exigem URL de fonte e conteúdo gerado por IA mantém sempre `source_type = ai_generated`.
+Os testes ponta a ponta ficam em `tests/e2e`. `npm run test:e2e` executa os cenários públicos; configure `E2E_EMAIL` e `E2E_PASSWORD` de uma conta candidata exclusiva para ativar também o cenário autenticado. Nunca reutilize credenciais administrativas.
 
-Para preparar um lote, copie `supabase/questions-import-template.csv`, substitua os UUIDs pelo catálogo real e execute:
+O endpoint `/api/health` informa se o runtime Next.js está saudável e se o banco foi configurado, sem expor credenciais.
 
-```bash
-node scripts/prepare_questions_import.js caminho/questoes.csv > questions-import.json
-```
+## Deploy
 
-Envie o JSON, em lotes de até 25, para `POST /api/admin/questions` com o token de um usuário `admin` ou `content_reviewer`. Toda importação começa como pendente; a revisão administrativa usa `PATCH /api/admin/questions/:id` com `decision` igual a `validated` ou `rejected`. A captura de respostas e a correção ao candidato pertencem à Fase 4 e ainda não foram ativadas.
-
-## Qualidade
-
-O projeto usa npm e fixa a linha LTS Node.js 24.x:
-
-```bash
-npm install
-npm run check
-```
-
-`check` executa ESLint, verificação de tipos JavaScript com TypeScript, testes `node:test`, migrações em PostgreSQL efêmero e validação do build estático.
-
-## Vercel
-
-Importe este repositório na Vercel e configure as variáveis aplicáveis para Production, Preview e Development. O endpoint `/api/config` entrega somente a URL e a chave pública necessárias ao navegador.
-
-Para deploy via CLI, depois de instalar e autenticar a Vercel CLI:
-
-```bash
-vercel link
-vercel env add SUPABASE_URL
-vercel env add SUPABASE_ANON_KEY
-vercel --prod
-```
+O `vercel.json` identifica o projeto como Next.js. Configure as mesmas variáveis em Production, Preview e Development antes de publicar.

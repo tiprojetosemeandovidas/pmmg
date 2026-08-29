@@ -1,0 +1,5 @@
+import Link from "next/link";
+
+export default function SimulationsPage() {
+  return <div className="next-content"><header className="page-header"><div><p className="eyebrow">TREINO ADAPTATIVO</p><h1>Simulados</h1><p>Distribuições do edital, da banca, de revisão e dos pontos fracos.</p></div></header><div className="sim-summary"><div><span>◉</span><p><b>Simulado diagnóstico disponível</b><small>10 questões autorais com gabarito validado</small></p></div><Link className="primary-button link-button" href="/app/questoes">Começar →</Link></div><div className="simulation-grid"><article><span>01</span><h3>Diagnóstico rápido</h3><p>10 questões • cerca de 8 minutos</p><div><i>Todos os eixos</i></div></article><article><span>02</span><h3>Simulado do edital</h3><p>Será liberado após associação de edital validado.</p><div><i>Distribuição real</i></div></article><article><span>03</span><h3>Simulado de revisão</h3><p>Será montado a partir do Caderno de Erros.</p><div><i>Pontos fracos</i></div></article></div></div>;
+}
