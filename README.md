@@ -77,8 +77,9 @@ python3 scripts/import_pmmg_pdfs.py /caminho/PMMG_Provas public/data
 
 ## Supabase
 
-1. Execute `supabase/schema.sql` no SQL Editor.
-   - Em um banco que já recebeu o schema anterior, execute apenas `supabase/migrations/20260827141000_candidate_states.sql`.
+1. Em ambientes novos, aplique `supabase/migrations` em ordem; a migration `00000000000000_legacy_schema_foundation.sql` cria a fundação e o trigger de perfil usados pelo cadastro.
+   - `supabase/schema.sql` permanece como snapshot consolidado para consulta e recuperação de ambientes legados.
+   - Em um banco que já recebeu o schema anterior, as migrations são idempotentes e podem ser aplicadas em ordem.
    - Para ativar o Edital Engine, execute também `supabase/migrations/20260827180000_notice_engine.sql`.
    - Para ativar o histórico do Mentor, execute `supabase/migrations/20260827200000_ai_mentor.sql`.
    - Para ativar trilhas acompanhadas, execute `supabase/migrations/20260827220000_opportunity_engine.sql`.

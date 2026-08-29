@@ -4,7 +4,9 @@ project_id = "pmmg"
 site_url = "https://rota-pmmg.vercel.app"
 additional_redirect_urls = [
   "https://rota-pmmg.vercel.app/**",
-  "https://pmmg-livid.vercel.app/**"
+  "https://pmmg-livid.vercel.app/**",
+  "https://pmmg-ti-semeando-vidas.vercel.app/**",
+  "http://localhost:3000/**"
 ]
 enable_signup = true
 

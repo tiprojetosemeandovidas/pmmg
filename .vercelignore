@@ -1,0 +1,14 @@
+# Implementação serverless legada mantida apenas para referência histórica.
+api/**
+scripts/**
+tests/**/*.js
+lib/**/*.js
+public/admin.html
+public/admin.js
+public/analisar-edital.html
+public/edital.css
+public/edital.js
+
+# Artefatos de documentação que não participam do build.
+*_VALIDATION.md
+supabase/verify/**

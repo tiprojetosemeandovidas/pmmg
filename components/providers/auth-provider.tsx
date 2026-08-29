@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { authCallbackUrl } from "@/lib/auth/redirect";
 
 type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; message: string };
 
@@ -58,20 +59,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     if (!supabase) return { ok: false, message: "A conexão com o Supabase não está configurada." };
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return error ? { ok: false, message: friendlyMessage(error.message) } : { ok: true };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      return error ? { ok: false, message: friendlyMessage(error.message) } : { ok: true };
+    } catch {
+      return { ok: false, message: "Não foi possível conectar ao serviço de autenticação." };
+    }
   }, [supabase]);
 
   const signUp = useCallback(async (name: string, email: string, password: string): Promise<AuthResult> => {
     if (!supabase) return { ok: false, message: "A conexão com o Supabase não está configurada." };
-    const emailRedirectTo = `${window.location.origin}/auth/callback?next=/app?onboarding=1`;
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name }, emailRedirectTo },
-    });
-    if (error) return { ok: false, message: friendlyMessage(error.message) };
-    return { ok: true, needsConfirmation: !data.session };
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: authCallbackUrl(window.location.origin),
+        },
+      });
+      if (error) return { ok: false, message: friendlyMessage(error.message) };
+      return { ok: true, needsConfirmation: !data.session };
+    } catch {
+      return { ok: false, message: "Não foi possível conectar ao serviço de autenticação." };
+    }
   }, [supabase]);
 
   const signOut = useCallback(async () => {
