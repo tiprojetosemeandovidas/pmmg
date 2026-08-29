@@ -28,7 +28,6 @@ async function connectSupabase() {
       await loadRecommendations();
       await loadPlan();
       await loadReviews();
-      enterDashboard('inicio');
     }
   } catch {
     // O protótipo continua funcional quando executado sem backend local.
