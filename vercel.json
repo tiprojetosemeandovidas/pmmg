@@ -3,30 +3,13 @@
   "framework": "nextjs",
   "cleanUrls": true,
   "trailingSlash": false,
-  "rewrites": [
-    { "source": "/api/config", "destination": "/api/candidate?action=config" },
-    { "source": "/api/answers", "destination": "/api/candidate?action=answer" },
-    { "source": "/api/candidate/mastery", "destination": "/api/candidate?action=mastery" },
-    { "source": "/api/recommendations", "destination": "/api/candidate?action=recommendations" },
-    { "source": "/api/plan", "destination": "/api/candidate?action=plan" },
-    { "source": "/api/plan/tasks/:id", "destination": "/api/candidate?action=plan-task&id=:id" },
-    { "source": "/api/reviews", "destination": "/api/candidate?action=reviews" },
-    { "source": "/api/reviews/:id/advance", "destination": "/api/candidate?action=review-advance&id=:id" },
-    { "source": "/api/diagnostics", "destination": "/api/candidate?action=diagnostics" },
-    { "source": "/api/diagnostics/:id/complete", "destination": "/api/candidate?action=diagnostic-complete&id=:id" }
-  ],
-  "functions": {
-    "api/editals/[id]/extract.js": { "maxDuration": 30 },
-    "api/editals/[id]/status.js": { "maxDuration": 30 }
-  },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
       ]
     }
   ]
