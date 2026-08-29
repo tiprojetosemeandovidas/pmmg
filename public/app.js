@@ -28,6 +28,7 @@ async function connectSupabase() {
       await loadRecommendations();
       await loadPlan();
       await loadReviews();
+      enterDashboard('inicio');
     }
   } catch {
     // O protótipo continua funcional quando executado sem backend local.
@@ -151,7 +152,7 @@ function showDiagnosisStep(step){diagnosisStep=step;document.querySelectorAll('.
 document.querySelectorAll('[data-start-diagnosis]').forEach(button=>button.addEventListener('click',()=>{if(!currentAccessToken){openLogin('Entre para salvar o diagnóstico e gerar seu plano personalizado.');return}diagnosisModal.classList.add('open');diagnosisModal.setAttribute('aria-hidden','false');showDiagnosisStep(1)}));
 document.querySelectorAll('[data-enter-dashboard]').forEach(button=>button.addEventListener('click',event=>{if(!currentAccessToken){event.preventDefault();openLogin();return}enterDashboard()}));
 document.querySelector('#closeLogin').addEventListener('click',()=>{loginModal.classList.remove('open');loginModal.setAttribute('aria-hidden','true')});
-document.querySelector('#loginForm').addEventListener('submit',async event=>{event.preventDefault();const email=document.querySelector('#loginEmail').value.trim();const message=document.querySelector('#loginMessage');if(!supabaseClient){message.textContent='Conexão ainda não disponível. Aguarde alguns segundos e tente novamente.';return}message.textContent='Enviando link seguro…';const {error}=await supabaseClient.auth.signInWithOtp({email,options:{emailRedirectTo:`${location.origin}${location.pathname}#inicio`}});message.textContent=error?'Não foi possível enviar. Confira o e-mail e tente novamente.':'Link enviado. Abra seu e-mail para entrar na plataforma.'});
+document.querySelector('#loginForm').addEventListener('submit',async event=>{event.preventDefault();const email=document.querySelector('#loginEmail').value.trim();const message=document.querySelector('#loginMessage');if(!supabaseClient){message.textContent='Conexão ainda não disponível. Aguarde alguns segundos e tente novamente.';return}message.textContent='Enviando link seguro…';const {error}=await supabaseClient.auth.signInWithOtp({email,options:{emailRedirectTo:'https://rota-pmmg.vercel.app/'}});message.textContent=error?'Não foi possível enviar. Confira o e-mail e tente novamente.':'Link enviado. Abra seu e-mail para entrar na plataforma.'});
 document.querySelector('#closeDiagnosis').addEventListener('click',()=>diagnosisModal.classList.remove('open'));
 document.querySelector('#diagnosisBack').addEventListener('click',()=>showDiagnosisStep(Math.max(1,diagnosisStep-1)));
 document.querySelector('#diagnosisNext').addEventListener('click',async()=>{if(diagnosisStep<3){showDiagnosisStep(diagnosisStep+1);return}const pool=questions.filter(q=>q.kind==='database').slice(0,20);if(pool.length<5){notify('Diagnóstico em preparação','Ainda não há questões validadas suficientes para iniciar.');return}try{currentDiagnosticSessionId=await startDiagnosticSession(pool.length)}catch{notify('Diagnóstico indisponível','Entre novamente e tente iniciar o diagnóstico.');return}diagnosisModal.classList.remove('open');enterDashboard('questoes');filteredQuestions=shuffled(pool);questionIndex=0;answered={};renderQuestion();notify('Diagnóstico iniciado',`Responda às ${pool.length} questões para calcular seu nível.`)});

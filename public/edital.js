@@ -140,7 +140,7 @@ async function start() {
 
 byId('loginState').addEventListener('submit', async event => {
   event.preventDefault(); byId('loginFeedback').textContent = 'Enviando…';
-  const { error } = await client.auth.signInWithOtp({ email: byId('loginEmail').value, options: { emailRedirectTo: location.href } });
+  const { error } = await client.auth.signInWithOtp({ email: byId('loginEmail').value, options: { emailRedirectTo: 'https://rota-pmmg.vercel.app/analisar-edital' } });
   byId('loginFeedback').textContent = error ? error.message : 'Confira sua caixa de entrada para acessar.';
 });
 byId('signOutButton').addEventListener('click', async () => { await client.auth.signOut(); session = null; show('loginState'); });

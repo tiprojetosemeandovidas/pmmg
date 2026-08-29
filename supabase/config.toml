@@ -1,0 +1,18 @@
+project_id = "pmmg"
+
+[auth]
+site_url = "https://rota-pmmg.vercel.app"
+additional_redirect_urls = [
+  "https://rota-pmmg.vercel.app/**",
+  "https://pmmg-livid.vercel.app/**"
+]
+enable_signup = true
+
+[auth.email]
+enable_confirmations = true
+max_frequency = "1m"
+otp_length = 8
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
