@@ -7,6 +7,12 @@ test("landing and health endpoint are available", async ({ page, request }) => {
   await expect(page.getByRole("heading", { name: /Saiba o que estudar/i })).toBeVisible();
 });
 
+test("signup form becomes available after auth initialization", async ({ page }) => {
+  await page.goto("/entrar?mode=signup");
+  await expect(page.getByRole("heading", { name: "Crie sua Rota" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Criar minha conta →" })).toBeEnabled();
+});
+
 test("TAF keeps personal data behind authentication", async ({ page, request }) => {
   await page.goto("/app/taf");
   await expect(page.getByRole("heading", { name: /TAF: evolução sem achismo/i })).toBeVisible();
