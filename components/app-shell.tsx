@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const { state, syncStatus } = useRota();
-  const { user, signOut } = useAuth();
+  const { user, accountRole, signOut } = useAuth();
   const tafApplicable = /pmmg|police/i.test(state.profile.career);
   const completed = state.plan.filter((task) => task.status === "completed").length;
   const progress = state.plan.length ? Math.round((completed / state.plan.length) * 100) : 0;
@@ -52,6 +52,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="nav-icon">{icon}</span><span>{label}</span>
             </Link>
           ))}
+          {(accountRole === "admin" || accountRole === "reviewer") && (
+            <Link className={`nav-item admin-nav-item ${pathname.startsWith("/app/admin") ? "active" : ""}`} href="/app/admin" onClick={() => setMenuOpen(false)}>
+              <span className="nav-icon">⚙</span><span>Administração</span>
+            </Link>
+          )}
         </nav>
         <div className="sidebar-foot">
           <div className="mini-progress"><div className="mini-title"><span>Meta semanal</span><strong>{progress}%</strong></div><div className="progress-track"><i style={{ width: `${progress}%` }} /></div><small>{completed} de {state.plan.length} sessões</small></div>

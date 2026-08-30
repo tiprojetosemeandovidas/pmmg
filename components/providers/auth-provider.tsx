@@ -14,9 +14,11 @@ import { createClient } from "@/lib/supabase/client";
 import { authCallbackUrl } from "@/lib/auth/redirect";
 
 type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; message: string };
+type AccountRole = "candidate" | "reviewer" | "admin";
 
 type AuthContextValue = {
   user: User | null;
+  accountRole: AccountRole | null;
   status: "loading" | "authenticated" | "anonymous" | "unavailable";
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signUp: (name: string, email: string, password: string, next?: string) => Promise<AuthResult>;
@@ -38,6 +40,7 @@ function friendlyMessage(message: string) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
   const [user, setUser] = useState<User | null>(null);
+  const [accountRole, setAccountRole] = useState<AccountRole | null>(null);
   const [status, setStatus] = useState<AuthContextValue["status"]>(supabase ? "loading" : "unavailable");
 
   useEffect(() => {
@@ -45,10 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let active = true;
     void supabase.auth.getUser().then(({ data }) => {
       if (!active) return;
+      setAccountRole(null);
       setUser(data.user);
       setStatus(data.user ? "authenticated" : "anonymous");
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAccountRole(null);
       setUser(session?.user ?? null);
       setStatus(session?.user ? "authenticated" : "anonymous");
     });
@@ -57,6 +62,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data.subscription.unsubscribe();
     };
   }, [supabase]);
+
+  useEffect(() => {
+    let active = true;
+    if (!supabase || !user) return () => { active = false; };
+    void supabase
+      .from("profiles")
+      .select("account_role")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!active) return;
+        const role = data?.account_role;
+        setAccountRole(role === "admin" || role === "reviewer" ? role : "candidate");
+      });
+    return () => { active = false; };
+  }, [supabase, user]);
 
   const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
     if (!supabase) return { ok: false, message: "A conexão com o Supabase não está configurada." };
@@ -105,8 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const value = useMemo(
-    () => ({ user, status, signIn, signUp, resendConfirmation, signOut }),
-    [user, status, signIn, signUp, resendConfirmation, signOut],
+    () => ({ user, accountRole, status, signIn, signUp, resendConfirmation, signOut }),
+    [user, accountRole, status, signIn, signUp, resendConfirmation, signOut],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -60,6 +60,13 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
   await db.exec(sql('supabase/migrations/20260830120000_enem_pilot_readiness.sql'));
   await db.exec(sql('supabase/migrations/20260830160000_pilot_cohort.sql'));
   await db.exec(sql('supabase/migrations/20260830160000_pilot_cohort.sql'));
+  await db.exec(`
+    drop table public.user_roles;
+    insert into auth.users (email, raw_user_meta_data)
+    values ('digitalcarloscruz@gmail.com', '{"full_name":"Carlos Cruz"}'::jsonb);
+  `);
+  await db.exec(sql('supabase/migrations/20260830170000_admin_digitalcarloscruz.sql'));
+  await db.exec(sql('supabase/migrations/20260830170000_admin_digitalcarloscruz.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);
@@ -88,5 +95,23 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
   const cohortTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('pilot_cohorts','pilot_participants','pilot_feedback') order by tablename");
   assert.equal(cohortTables.rows.length, 3);
   assert.ok(cohortTables.rows.every(row => row.rowsecurity));
+  const adminProfile = await db.query(`
+    select p.account_role
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    where lower(u.email) = 'digitalcarloscruz@gmail.com'
+  `);
+  assert.deepEqual(adminProfile.rows[0], { account_role: 'admin' });
+  const adminRole = await db.query(`
+    select ur.role
+    from public.user_roles ur
+    join auth.users u on u.id = ur.user_id
+    where lower(u.email) = 'digitalcarloscruz@gmail.com'
+  `);
+  assert.deepEqual(adminRole.rows[0], { role: 'admin' });
+  assert.equal(
+    await db.query("select has_column_privilege('authenticated', 'public.profiles', 'account_role', 'update') as allowed").then(result => result.rows[0].allowed),
+    false,
+  );
   await db.close();
 });
