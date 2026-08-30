@@ -113,5 +113,9 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
     await db.query("select has_column_privilege('authenticated', 'public.profiles', 'account_role', 'update') as allowed").then(result => result.rows[0].allowed),
     false,
   );
+  assert.equal(
+    await db.query("select has_column_privilege('authenticated', 'public.profiles', 'account_role', 'select') as allowed").then(result => result.rows[0].allowed),
+    true,
+  );
   await db.close();
 });

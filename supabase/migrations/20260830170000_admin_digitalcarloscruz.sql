@@ -15,6 +15,14 @@ drop policy if exists "user_roles_select_own" on public.user_roles;
 create policy "user_roles_select_own" on public.user_roles
   for select using (auth.uid() = user_id);
 
+alter table public.profiles enable row level security;
+drop policy if exists "profiles_select_own" on public.profiles;
+create policy "profiles_select_own" on public.profiles
+  for select using (auth.uid() = id);
+
+grant select on public.profiles to authenticated;
+grant select on public.user_roles to authenticated;
+
 do $$
 declare
   admin_user_id uuid;
