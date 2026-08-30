@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 type Metadata = { id: string; name?: string; title?: string | null; institution?: string; role?: string; exam_year?: number; stable_code?: string; subjects?: { name?: string } | null };
 type SourceLink = { relation: string; content_sources: { id: string; title: string; url: string | null; rights_status: string } | null };
@@ -19,14 +19,33 @@ export function QuestionBankAdmin() {
   const [manual, setManual] = useState(emptyManual);
   const [research, setResearch] = useState({ query: "", subject: "", topic: "", count: 5, domains: "gov.br", examId: "", axisId: "", topicId: "" });
 
-  const load = useCallback(async () => {
+  async function seedEnemPilot() {
+    setBusy(true); setError(""); setMessage("");
+    const response = await fetch("/api/admin/question-bank", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "seed_enem_pilot" }) });
+    const payload = await response.json().catch(() => ({}));
+    setBusy(false);
+    if (!response.ok) { setError(payload.error ?? "Não foi possível preparar o lote ENEM."); return; }
+    setMessage(`${payload.candidateCount} questões autorais ENEM enviadas para revisão humana.`); setTab("review"); await load();
+  }
+
+  async function load() {
     setLoading(true);
     const response = await fetch("/api/admin/question-bank", { cache: "no-store" });
     const payload = await response.json().catch(() => ({}));
     if (response.ok) { setData(payload); setError(""); } else setError(payload.error ?? "Central indisponível.");
     setLoading(false);
+  }
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(async () => {
+      const response = await fetch("/api/admin/question-bank", { cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!active) return;
+      if (response.ok) { setData(payload); setError(""); } else setError(payload.error ?? "Central indisponível.");
+      setLoading(false);
+    });
+    return () => { active = false; };
   }, []);
-  useEffect(() => { queueMicrotask(() => void load()); }, [load]);
 
   async function submit(body: Record<string, unknown>) {
     setBusy(true); setError(""); setMessage("");
@@ -58,7 +77,7 @@ export function QuestionBankAdmin() {
 
   return <div className="question-admin">
     <section className="question-admin-stats"><article><span>Pendentes</span><b>{pending.length}</b></article><article><span>Lotes</span><b>{data.batches.length}</b></article><article><span>Origem web</span><b>{data.candidates.filter((item) => item.origin === "web_researched").length}</b></article><article><span>Origem manual</span><b>{data.candidates.filter((item) => item.origin === "manual").length}</b></article></section>
-    <div className="question-admin-tabs"><button className={tab === "research" ? "active" : ""} onClick={() => setTab("research")}>Pesquisar com IA</button><button className={tab === "manual" ? "active" : ""} onClick={() => setTab("manual")}>Cadastrar manualmente</button><button className={tab === "review" ? "active" : ""} onClick={() => setTab("review")}>Revisar ({pending.length})</button></div>
+    <div className="question-admin-tabs"><button className={tab === "research" ? "active" : ""} onClick={() => setTab("research")}>Pesquisar com IA</button><button className={tab === "manual" ? "active" : ""} onClick={() => setTab("manual")}>Cadastrar manualmente</button><button className={tab === "review" ? "active" : ""} onClick={() => setTab("review")}>Revisar ({pending.length})</button><button disabled={busy} onClick={() => void seedEnemPilot()}>Preparar lote ENEM (10)</button></div>
     {error && <div className="opportunity-message" role="alert">{error}</div>}{message && <div className="taf-message" role="status">{message}</div>}
 
     {tab === "research" && <section className="surface question-admin-form"><div className="panel-head"><div><p className="eyebrow">PERPLEXITY • PESQUISA RASTREÁVEL</p><h2>Localizar fontes e criar rascunhos autorais</h2><p>A pesquisa, as URLs e o modelo ficam gravados. Nada é publicado sem revisão.</p></div><span className={data.perplexityConfigured ? "provider-ready" : "provider-missing"}>{data.perplexityConfigured ? "API configurada" : "API não configurada"}</span></div><form onSubmit={(event) => { event.preventDefault(); void submit({ action: "research", ...research, examId: research.examId || null, axisId: research.axisId || null, topicId: research.topicId || null, domains: research.domains.split(/[,\s]+/).filter(Boolean) }); }}><label className="wide">O que a IA deve pesquisar<textarea required minLength={10} maxLength={1200} rows={4} value={research.query} onChange={(event) => setResearch({ ...research, query: event.target.value })} placeholder="Ex.: competências de Ciências da Natureza cobradas no ENEM, usando fontes oficiais do Inep" /></label><label>Disciplina<input required value={research.subject} onChange={(event) => setResearch({ ...research, subject: event.target.value })} /></label><label>Tópico<input value={research.topic} onChange={(event) => setResearch({ ...research, topic: event.target.value })} /></label><label>Quantidade<input type="number" min="1" max="10" value={research.count} onChange={(event) => setResearch({ ...research, count: Number(event.target.value) })} /></label><label>Domínios permitidos<input value={research.domains} onChange={(event) => setResearch({ ...research, domains: event.target.value })} placeholder="gov.br, inep.gov.br" /></label><label>Prova<select value={research.examId} onChange={(event) => setResearch({ ...research, examId: event.target.value })}><option value="">Associar depois</option>{examOptions}</select></label><label>Eixo<select value={research.axisId} onChange={(event) => setResearch({ ...research, axisId: event.target.value })}><option value="">Associar depois</option>{axisOptions}</select></label><label className="wide">Tópico normalizado<select value={research.topicId} onChange={(event) => setResearch({ ...research, topicId: event.target.value })}><option value="">Associar depois</option>{topicOptions}</select></label><button className="primary-button" disabled={busy || !data.perplexityConfigured}>{busy ? "Pesquisando…" : "Pesquisar e criar rascunhos →"}</button></form><small className="curation-note">Use fontes oficiais ou autorizadas. Não pesquise bancos comerciais para reproduzir questões.</small></section>}

@@ -71,7 +71,7 @@ export function AuthForm({ initialMode, next, confirmationError }: { initialMode
   return (
     <main className="auth-page">
       <section className="auth-panel">
-        <Link href="/" aria-label="Voltar para a página inicial"><Brand /></Link>
+        <Brand />
         <div className="auth-copy">
           <p className="eyebrow">SUA JORNADA CONTINUA</p>
           <h1>{mode === "login" ? "Entre na sua Rota" : "Crie sua Rota"}</h1>

@@ -69,6 +69,14 @@ function readStoredState(key: string) {
   }
 }
 
+function trackPilotEvent(eventType: string, eventKey: string, metadata: Record<string, string | number | boolean | null> = {}) {
+  void fetch("/api/pilot/events", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ eventType, eventKey, metadata, occurredAt: new Date().toISOString() }),
+  });
+}
+
 export function RotaProvider({ children }: { children: ReactNode }) {
   const { user, status: authStatus } = useAuth();
   const supabase = useMemo(() => createClient(), []);
@@ -157,7 +165,12 @@ export function RotaProvider({ children }: { children: ReactNode }) {
 
   const completeOnboarding = useCallback((profile: OnboardingInput) => {
     setState((current) => applyOnboarding(current, profile));
-  }, []);
+    if (user) {
+      const key = `onboarding:${user.id}`;
+      trackPilotEvent("onboarding_completed", key, { career: profile.career });
+      trackPilotEvent("diagnostic_started", `diagnostic:${user.id}:${profile.career}`, { target: 10 });
+    }
+  }, [user]);
 
   const recordAnswer = useCallback(
     (
@@ -168,17 +181,22 @@ export function RotaProvider({ children }: { children: ReactNode }) {
       setState((current) =>
         applyAnswer(current, question, selectedOption, context),
       );
+      if (user && state.diagnostic.active && context === "diagnostic" && state.diagnostic.answered + 1 >= state.diagnostic.target) {
+        trackPilotEvent("diagnostic_completed", `diagnostic-completed:${user.id}:${state.diagnostic.target}`, { answered: state.diagnostic.target });
+      }
     },
-    [],
+    [state.diagnostic, user],
   );
 
   const completeTask = useCallback((taskId: string) => {
     setState((current) => applyTaskCompletion(current, taskId));
-  }, []);
+    if (user) trackPilotEvent("task_completed", `task:${taskId}`, {});
+  }, [user]);
 
   const completeWeeklyCheckin = useCallback(() => {
     setState((current) => applyWeeklyCheckin(current));
-  }, []);
+    if (user) trackPilotEvent("weekly_checkin_completed", `checkin:${new Date().toISOString().slice(0, 10)}`, {});
+  }, [user]);
 
   const recalculate = useCallback((reason = "Rota recalculada manualmente.") => {
     setState((current) => recalculatePlan(current, reason));

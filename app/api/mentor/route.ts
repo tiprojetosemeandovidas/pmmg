@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     admin.from("ai_interactions").select("question, answer").eq("user_id", user.id).eq("status", "completed").order("created_at", { ascending: false }).limit(4),
     admin.from("physical_goals").select("event_code, target_value, goal_source, is_official").eq("user_id", user.id).limit(8),
     admin.from("physical_results").select("event_code, value, measured_at").eq("user_id", user.id).order("measured_at", { ascending: false }).limit(12),
-    admin.from("questions").select("id,subject,topic,statement,explanation,source_type,question_source_links(relation,content_sources(title,url,rights_status))").eq("status", "published").eq("validation_status", "approved").order("created_at", { ascending: false }).limit(30),
+    admin.from("questions").select("id,subject,topic,statement,explanation,source_type,question_source_links(relation,content_sources(title,url,rights_status))").eq("status", "published").eq("validation_status", "validated").order("created_at", { ascending: false }).limit(30),
   ]);
   const state = snapshot?.state as RotaState | undefined;
   if (state?.version !== 3) return error("Conclua o onboarding para o Mentor conhecer sua rota.", 409, operationRequestId);

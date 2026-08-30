@@ -3,7 +3,7 @@
 const { error, handleError, json, readJson } = require('../lib/http');
 const { UUID, validateAnswer } = require('../lib/candidate-schema');
 const { authenticate, rest } = require('../lib/supabase-server');
-const { buildRecommendations } = require('../lib/domain/adaptive-engine');
+const { buildRecommendations } = require('../lib/domain/adaptive-recommendations');
 const { buildWeeklyPlan } = require('../lib/domain/adaptive-planner');
 
 function one(value) { return Array.isArray(value) ? value[0] : value; }

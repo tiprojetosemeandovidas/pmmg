@@ -6,6 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Brand } from "@/components/brand";
 import { useRota } from "@/components/providers/rota-provider";
 import { useAuth } from "@/components/providers/auth-provider";
+import { NotificationCenter } from "@/components/notification-center";
 
 const navigation = [
   ["/app", "⌂", "Início"],
@@ -59,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <main className="next-app-main">
-        <header className="topbar"><button className="menu-button" type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="Abrir menu">☰</button><div className="mobile-brand"><b>Rota</b></div><div className="top-actions"><span className={`sync-chip ${syncStatus}`}><i />{syncLabel}</span><span className="pilot-chip"><i />MVP adaptativo</span></div></header>
+        <header className="topbar"><button className="menu-button" type="button" onClick={() => setMenuOpen((value) => !value)} aria-label="Abrir menu">☰</button><div className="mobile-brand"><b>Rota</b></div><div className="top-actions"><span className={`sync-chip ${syncStatus}`}><i />{syncLabel}</span><span className="pilot-chip"><i />Piloto ENEM</span><NotificationCenter enabled={Boolean(user)} /></div></header>
         {children}
       </main>
     </div>

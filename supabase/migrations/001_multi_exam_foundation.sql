@@ -55,6 +55,9 @@ create table if not exists public.subjects (
   updated_at timestamptz not null default now()
 );
 
+alter table public.subjects add column if not exists active boolean not null default true;
+alter table public.subjects add column if not exists updated_at timestamptz not null default now();
+
 create table if not exists public.topics (
   id uuid primary key default gen_random_uuid(),
   subject_id uuid not null references public.subjects(id) on delete restrict,
@@ -69,6 +72,17 @@ create table if not exists public.topics (
   check (parent_id is null or parent_id <> id),
   unique (subject_id, slug)
 );
+
+-- `supabase/schema.sql` usava `parent_topic_id`; mantém a coluna legada e
+-- cria o nome canônico para que a migração seja realmente aditiva.
+alter table public.topics add column if not exists parent_id uuid references public.topics(id) on delete restrict;
+alter table public.topics add column if not exists active boolean not null default true;
+alter table public.topics add column if not exists updated_at timestamptz not null default now();
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'topics' and column_name = 'parent_topic_id') then
+    execute 'update public.topics set parent_id = parent_topic_id where parent_id is null and parent_topic_id is not null';
+  end if;
+end $$;
 
 create index if not exists topics_subject_idx on public.topics(subject_id);
 create index if not exists topics_parent_idx on public.topics(parent_id);

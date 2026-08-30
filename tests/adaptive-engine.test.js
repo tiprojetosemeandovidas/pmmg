@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildRecommendations } = require('../lib/domain/adaptive-engine');
+const { buildRecommendations } = require('../lib/domain/adaptive-recommendations');
 
 const topic = overrides => ({ topicId: crypto.randomUUID(), topicCode: 'DIREITO.TESTE', topic: 'Tópico',
   subject: 'Direito', masteryScore: 50, confidence: 0.5, questionsAnswered: 10,

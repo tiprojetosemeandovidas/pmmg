@@ -37,6 +37,8 @@
   ],
   "exclude": [
     "node_modules",
-    "legacy-static"
+    "legacy-static",
+    "**/* 2.ts",
+    "**/* 2.tsx"
   ]
 }

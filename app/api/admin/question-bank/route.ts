@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { enemDiagnosticQuestions } from "@/lib/data/questions";
 import { researchQuestions } from "@/lib/perplexity/question-research";
 import { recordOperationalEvent, requestId } from "@/lib/platform/observability";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -89,6 +90,30 @@ export async function POST(request: Request) {
   const access = await curator();
   if (!access) return NextResponse.json({ error: "Acesso restrito à curadoria." }, { status: 403 });
   const body = await request.json().catch(() => null);
+  if (body?.action === "seed_enem_pilot") {
+    let { data: exam } = await access.admin.from("exams").select("id").eq("slug", "enem-2026-autoral-rota").maybeSingle();
+    if (!exam) {
+      const created = await access.admin.from("exams").insert({ institution: "INEP", state: "DF", role: "ENEM — treino autoral", exam_year: 2026, organizer: "Rota", source_url: "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem", authorization_reference: "Questões autorais Rota; referência de competências no portal oficial do Inep", status: "published", slug: "enem-2026-autoral-rota", title: "ENEM 2026 — diagnóstico autoral Rota", metadata: { officialQuestions: false, purpose: "pilot_diagnostic" } }).select("id").single();
+      if (created.error || !created.data) return NextResponse.json({ error: "Não foi possível preparar a prova autoral ENEM." }, { status: 500 });
+      exam = created.data;
+    }
+    const [{ data: axes }, { data: topics }] = await Promise.all([
+      access.admin.from("question_axes").select("id,name"),
+      access.admin.from("topics").select("id,name,stable_code"),
+    ]);
+    const axisByName = new Map((axes ?? []).map((item) => [item.name, item.id]));
+    const topicByName = new Map((topics ?? []).map((item) => [item.name, item.id]));
+    const { data: batch, error: batchError } = await access.admin.from("question_import_batches").insert({ created_by: access.user.id, origin: "manual", provider: "rota_editorial", query: "Lote autoral inicial ENEM 2026", status: "draft" }).select("id").single();
+    if (batchError || !batch) return NextResponse.json({ error: "Não foi possível criar o lote ENEM." }, { status: 500 });
+    const { data: source, error: sourceError } = await access.admin.from("content_sources").insert({ batch_id: batch.id, origin: "manual", provider: "rota_editorial", title: "Rota — diagnóstico autoral ENEM", url: "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem", publisher: "Rota", rights_status: "authorized", content_hash: createHash("sha256").update(`enem-pilot-authorial:${batch.id}`).digest("hex"), metadata: { officialQuestions: false, reference: "Competências ENEM" }, created_by: access.user.id }).select("id").single();
+    if (sourceError || !source) return NextResponse.json({ error: "Não foi possível registrar a origem autoral." }, { status: 500 });
+    const candidates = enemDiagnosticQuestions.map((question) => ({ batch_id: batch.id, origin: "manual", exam_id: exam!.id, axis_id: axisByName.get(question.axis) ?? null, topic_id: topicByName.get(question.topic) ?? null, subject: question.axis, topic: question.topic, statement: question.text, options: question.options, correct_option: question.answer, explanation: question.explanation, difficulty: question.difficulty === "Fácil" ? "easy" : question.difficulty === "Difícil" ? "hard" : "medium", content_hash: digest(question.text, question.options), provenance: { author: "Rota", purpose: "pilot_diagnostic", officialQuestion: false }, created_by: access.user.id }));
+    const { data: inserted, error: candidateError } = await access.admin.from("question_candidates").upsert(candidates, { onConflict: "content_hash", ignoreDuplicates: true }).select("id");
+    if (candidateError) return NextResponse.json({ error: "Não foi possível preparar as questões autorais." }, { status: 500 });
+    if (inserted?.length) await access.admin.from("question_candidate_sources").insert(inserted.map((candidate) => ({ candidate_id: candidate.id, source_id: source.id, relation: "original_question" })));
+    await access.admin.from("question_import_batches").update({ status: "needs_review", source_count: 1, candidate_count: inserted?.length ?? 0, updated_at: new Date().toISOString() }).eq("id", batch.id);
+    return NextResponse.json({ batchId: batch.id, candidateCount: inserted?.length ?? 0, sourceCount: 1 }, { status: 201 });
+  }
   const action = body?.action === "research" ? researchSchema.safeParse(body) : manualSchema.safeParse(body);
   if (!action.success) return NextResponse.json({ error: "Dados do lote inválidos.", details: action.error.flatten() }, { status: 400 });
 
@@ -174,11 +199,17 @@ export async function PATCH(request: Request) {
     options: candidate.options, correct_option: candidate.correct_option, explanation: candidate.explanation, difficulty: candidate.difficulty,
     content_hash: candidate.content_hash, status: "published", reviewed_by: access.user.id, reviewed_at: new Date().toISOString(),
     source_type: candidate.origin === "web_researched" ? "web_researched" : "manually_created",
-    ai_generated: candidate.origin === "web_researched", validation_status: "approved", ingestion_origin: candidate.origin,
+    ai_generated: candidate.origin === "web_researched", validation_status: "validated", ingestion_origin: candidate.origin,
+    validated_by: access.user.id, validated_at: new Date().toISOString(),
     generation_model: candidate.generation_model, provenance: candidate.provenance,
   }).select("id").single();
   if (error || !question) return NextResponse.json({ error: error?.code === "23505" ? "Questão duplicada no banco publicado." : "Não foi possível publicar a questão." }, { status: error?.code === "23505" ? 409 : 500 });
-  if (topicId) await access.admin.from("question_topics").upsert({ question_id: question.id, topic_id: topicId, relevance: 1 });
+  const { error: optionsError } = await access.admin.from("question_options").insert((candidate.options as string[]).map((content, optionIndex) => ({ question_id: question.id, option_index: optionIndex, label: String.fromCharCode(65 + optionIndex), content })));
+  if (optionsError) {
+    await access.admin.from("questions").delete().eq("id", question.id);
+    return NextResponse.json({ error: "Não foi possível normalizar as alternativas da questão." }, { status: 500 });
+  }
+  if (topicId) await access.admin.from("question_topics").upsert({ question_id: question.id, topic_id: topicId, relevance: 1, is_primary: true, classification_method: "manual", classified_by: access.user.id });
   const { data: links } = await access.admin.from("question_candidate_sources").select("source_id,relation").eq("candidate_id", candidate.id);
   if (links?.length) await access.admin.from("question_source_links").insert(links.map((link) => ({ question_id: question.id, source_id: link.source_id, relation: link.relation })));
   await access.admin.from("question_candidates").update({ status: "approved", published_question_id: question.id, reviewer_notes: parsed.data.notes, reviewed_by: access.user.id, reviewed_at: new Date().toISOString(), exam_id: examId, axis_id: axisId, topic_id: topicId, updated_at: new Date().toISOString() }).eq("id", candidate.id);

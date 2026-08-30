@@ -31,7 +31,9 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
       allowed_mime_types text[]
     );
   `);
-  await db.exec(sql('supabase/schema.sql'));
+  // Usa a mesma fundação executada pelo histórico real de migrations. O
+  // schema.sql é apenas um snapshot de desenvolvimento e pode estar à frente.
+  await db.exec(sql('supabase/migrations/00000000000000_legacy_schema_foundation.sql'));
   await db.exec(sql('supabase/migrations/001_multi_exam_foundation.sql'));
   await db.exec(sql('supabase/migrations/002_edital_engine.sql'));
   await db.exec(sql('supabase/migrations/002_edital_engine.sql'));
@@ -54,6 +56,8 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
   await db.exec(sql('supabase/migrations/008_adaptive_planner.sql'));
   await db.exec(sql('supabase/migrations/008_adaptive_planner.sql'));
   await db.exec(sql('supabase/verify/008_adaptive_planner_check.sql'));
+  await db.exec(sql('supabase/migrations/20260830120000_enem_pilot_readiness.sql'));
+  await db.exec(sql('supabase/migrations/20260830120000_enem_pilot_readiness.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);
@@ -77,5 +81,7 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
   const plannerTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('study_plans','plan_tasks','review_queue') order by tablename");
   assert.equal(plannerTables.rows.length, 3);
   assert.ok(plannerTables.rows.every(row => row.rowsecurity));
+  const pilotTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename = 'pilot_events'");
+  assert.deepEqual(pilotTables.rows[0], { tablename: 'pilot_events', rowsecurity: true });
   await db.close();
 });
