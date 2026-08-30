@@ -59,3 +59,6 @@ alter table public.pilot_events add constraint pilot_events_event_type_check che
   'task_completed','weekly_checkin_completed','review_completed','notification_opened',
   'pilot_joined','feedback_submitted'
 ));
+
+-- Necessário quando a migração é aplicada manualmente pelo SQL Editor.
+notify pgrst, 'reload schema';
