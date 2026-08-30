@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { GamificationPanel } from "@/components/gamification-panel";
 import { useRota } from "@/components/providers/rota-provider";
+import { PilotEnrollment } from "@/components/pilot-enrollment";
 
 const dayLabels = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
@@ -14,15 +15,18 @@ function DashboardContent() {
   const { state, view, hydrated, completeTask, completeWeeklyCheckin } = useRota();
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const pilotCode = searchParams.get("pilot");
+  const [pilotAccepted, setPilotAccepted] = useState(() => !pilotCode);
   const [pageOpenedAt] = useState(() => Date.now());
   const nextPriority = view.priorities.find((item) => item.id === view.nextAction.topicId) ?? view.priorities[0];
-  const shouldShowOnboarding = onboardingOpen || (!onboardingDismissed && hydrated && (!state.profile.onboardingCompleted || searchParams.get("onboarding") === "1"));
+  const shouldShowOnboarding = pilotAccepted && (onboardingOpen || (!onboardingDismissed && hydrated && (!state.profile.onboardingCompleted || searchParams.get("onboarding") === "1")));
   const minutes = state.stats.completedMinutes;
   const isEnem = state.profile.career === "enem-2026";
   const enemDays = Math.max(0, Math.ceil((new Date("2026-11-08T12:00:00-03:00").getTime() - pageOpenedAt) / 86_400_000));
 
   return (
     <div className="next-content">
+      <PilotEnrollment code={pilotCode} onJoined={() => setPilotAccepted(true)} />
       <section className="welcome-row">
         <div><p className="eyebrow">{new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "2-digit", month: "long" }).format(new Date()).toUpperCase()}</p><h1>Olá, {state.profile.name} <span>👋</span></h1><p className="subtitle">{view.modeLabel} • {state.profile.careerLabel}</p></div>
         <button className="outline-button" type="button" onClick={() => setOnboardingOpen(true)}>⚙ Ajustar minha rota</button>

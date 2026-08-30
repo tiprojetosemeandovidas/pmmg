@@ -35,7 +35,7 @@ export function AuthForm({ initialMode, next, confirmationError }: { initialMode
     setBusy(true);
     setMessage("");
     setSuccess(false);
-    const result = mode === "login" ? await signIn(email, password) : await signUp(name.trim(), email, password);
+    const result = mode === "login" ? await signIn(email, password) : await signUp(name.trim(), email, password, next);
     setBusy(false);
     if (!result.ok) {
       setMessage(result.message);
@@ -58,7 +58,7 @@ export function AuthForm({ initialMode, next, confirmationError }: { initialMode
     setBusy(true);
     setMessage("");
     setSuccess(false);
-    const result = await resendConfirmation(email.trim());
+    const result = await resendConfirmation(email.trim(), next);
     setBusy(false);
     if (!result.ok) {
       setMessage(result.message);

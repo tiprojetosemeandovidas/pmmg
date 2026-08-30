@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const eventSchema = z.object({
-  eventType: z.enum(["onboarding_completed", "diagnostic_started", "diagnostic_completed", "question_answered", "task_completed", "weekly_checkin_completed", "review_completed", "notification_opened"]),
+  eventType: z.enum(["onboarding_completed", "diagnostic_started", "diagnostic_completed", "question_answered", "task_completed", "weekly_checkin_completed", "review_completed", "notification_opened", "pilot_joined", "feedback_submitted"]),
   eventKey: z.string().min(8).max(160),
   metadata: z.record(z.string(), z.union([z.string().max(120), z.number(), z.boolean(), z.null()])).default({}),
   occurredAt: z.string().datetime().optional(),

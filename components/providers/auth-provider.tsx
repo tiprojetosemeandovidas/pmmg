@@ -19,8 +19,8 @@ type AuthContextValue = {
   user: User | null;
   status: "loading" | "authenticated" | "anonymous" | "unavailable";
   signIn: (email: string, password: string) => Promise<AuthResult>;
-  signUp: (name: string, email: string, password: string) => Promise<AuthResult>;
-  resendConfirmation: (email: string) => Promise<AuthResult>;
+  signUp: (name: string, email: string, password: string, next?: string) => Promise<AuthResult>;
+  resendConfirmation: (email: string, next?: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
 
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase]);
 
-  const signUp = useCallback(async (name: string, email: string, password: string): Promise<AuthResult> => {
+  const signUp = useCallback(async (name: string, email: string, password: string, next?: string): Promise<AuthResult> => {
     if (!supabase) return { ok: false, message: "A conexão com o Supabase não está configurada." };
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           data: { full_name: name },
-          emailRedirectTo: authCallbackUrl(window.location.origin),
+          emailRedirectTo: authCallbackUrl(window.location.origin, next),
         },
       });
       if (error) return { ok: false, message: friendlyMessage(error.message) };
@@ -86,13 +86,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase]);
 
-  const resendConfirmation = useCallback(async (email: string): Promise<AuthResult> => {
+  const resendConfirmation = useCallback(async (email: string, next?: string): Promise<AuthResult> => {
     if (!supabase) return { ok: false, message: "A conexão com o Supabase não está configurada." };
     try {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email,
-        options: { emailRedirectTo: authCallbackUrl(window.location.origin) },
+        options: { emailRedirectTo: authCallbackUrl(window.location.origin, next) },
       });
       return error ? { ok: false, message: friendlyMessage(error.message) } : { ok: true };
     } catch {

@@ -58,6 +58,8 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
   await db.exec(sql('supabase/verify/008_adaptive_planner_check.sql'));
   await db.exec(sql('supabase/migrations/20260830120000_enem_pilot_readiness.sql'));
   await db.exec(sql('supabase/migrations/20260830120000_enem_pilot_readiness.sql'));
+  await db.exec(sql('supabase/migrations/20260830160000_pilot_cohort.sql'));
+  await db.exec(sql('supabase/migrations/20260830160000_pilot_cohort.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);
@@ -83,5 +85,8 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
   assert.ok(plannerTables.rows.every(row => row.rowsecurity));
   const pilotTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename = 'pilot_events'");
   assert.deepEqual(pilotTables.rows[0], { tablename: 'pilot_events', rowsecurity: true });
+  const cohortTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('pilot_cohorts','pilot_participants','pilot_feedback') order by tablename");
+  assert.equal(cohortTables.rows.length, 3);
+  assert.ok(cohortTables.rows.every(row => row.rowsecurity));
   await db.close();
 });

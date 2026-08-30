@@ -18,6 +18,7 @@ const navigation = [
   ["/app/questoes", "?", "Questões"],
   ["/app/revisoes", "↻", "Revisões"],
   ["/app/simulados", "◉", "Simulados"],
+  ["/app/piloto", "✎", "Feedback piloto"],
   ["/app/taf", "⚑", "TAF"],
   ["/app/editais", "◇", "Editais"],
 ] as const;
@@ -46,7 +47,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
         <Brand />
         <nav className="main-nav" aria-label="Navegação principal">
-          {navigation.filter(([href]) => href !== "/app/taf" || tafApplicable).map(([href, icon, label]) => (
+          {navigation.filter(([href]) => (href !== "/app/taf" || tafApplicable) && (href !== "/app/piloto" || state.profile.career === "enem-2026")).map(([href, icon, label]) => (
             <Link key={href} className={`nav-item ${pathname === href ? "active" : ""}`} href={href} onClick={() => setMenuOpen(false)}>
               <span className="nav-icon">{icon}</span><span>{label}</span>
             </Link>

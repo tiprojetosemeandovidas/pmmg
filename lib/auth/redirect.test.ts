@@ -8,6 +8,12 @@ describe("auth redirect", () => {
     expect(callback.searchParams.get("next")).toBe("/app?onboarding=1");
   });
 
+  it("preserves the pilot code through email confirmation", () => {
+    const next = "/app?onboarding=1&pilot=enem-piloto-1";
+    const callback = new URL(authCallbackUrl("https://pmmg-ti-semeando-vidas.vercel.app", next));
+    expect(callback.searchParams.get("next")).toBe(next);
+  });
+
   it("rejects external and backslash redirects", () => {
     expect(safeAuthNext("//evil.example")).toBe("/app");
     expect(safeAuthNext("/\\evil.example")).toBe("/app");
