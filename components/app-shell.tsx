@@ -7,6 +7,7 @@ import { Brand } from "@/components/brand";
 import { useRota } from "@/components/providers/rota-provider";
 import { useAuth } from "@/components/providers/auth-provider";
 import { NotificationCenter } from "@/components/notification-center";
+import { isOwnerAdministrator } from "@/lib/auth/roles";
 
 const navigation = [
   ["/app", "⌂", "Início"],
@@ -29,6 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { state, syncStatus } = useRota();
   const { user, accountRole, signOut } = useAuth();
+  const canManage = accountRole === "admin" || accountRole === "reviewer" || isOwnerAdministrator(user);
   const tafApplicable = /pmmg|police/i.test(state.profile.career);
   const completed = state.plan.filter((task) => task.status === "completed").length;
   const progress = state.plan.length ? Math.round((completed / state.plan.length) * 100) : 0;
@@ -52,7 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="nav-icon">{icon}</span><span>{label}</span>
             </Link>
           ))}
-          {(accountRole === "admin" || accountRole === "reviewer") && (
+          {canManage && (
             <Link className={`nav-item admin-nav-item ${pathname.startsWith("/app/admin") ? "active" : ""}`} href="/app/admin" onClick={() => setMenuOpen(false)}>
               <span className="nav-icon">⚙</span><span>Administração</span>
             </Link>

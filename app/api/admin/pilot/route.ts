@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnerAdministrator } from "@/lib/auth/roles";
 
 const createSchema = z.object({ action: z.literal("create_cohort"), name: z.string().trim().min(3).max(120), code: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), targetSize: z.number().int().min(1).max(100).default(10) });
 const participantSchema = z.object({ action: z.literal("add_participant"), cohortId: z.string().uuid(), email: z.string().trim().email().max(320) });
@@ -14,7 +15,7 @@ async function administrator() {
   const { data: auth } = await session.auth.getUser();
   if (!auth.user) return null;
   const { data: profile } = await admin.from("profiles").select("account_role").eq("id", auth.user.id).maybeSingle();
-  return profile?.account_role === "admin" ? { admin, user: auth.user } : null;
+  return profile?.account_role === "admin" || isOwnerAdministrator(auth.user) ? { admin, user: auth.user } : null;
 }
 
 export async function GET() {

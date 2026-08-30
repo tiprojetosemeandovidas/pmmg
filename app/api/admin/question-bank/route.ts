@@ -6,6 +6,7 @@ import { researchQuestions } from "@/lib/perplexity/question-research";
 import { recordOperationalEvent, requestId } from "@/lib/platform/observability";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnerAdministrator } from "@/lib/auth/roles";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -56,7 +57,7 @@ async function curator() {
   const { data } = await session.auth.getUser();
   if (!data.user) return null;
   const { data: profile } = await admin.from("profiles").select("account_role").eq("id", data.user.id).maybeSingle();
-  return profile && ["reviewer", "admin"].includes(profile.account_role) ? { user: data.user, admin } : null;
+  return profile && ["reviewer", "admin"].includes(profile.account_role) || isOwnerAdministrator(data.user) ? { user: data.user, admin } : null;
 }
 
 function digest(statement: string, options: string[]) {

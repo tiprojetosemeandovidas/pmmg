@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { isOwnerAdministrator } from "@/lib/auth/roles";
 
 async function administrator() {
   const session = await createClient();
@@ -9,7 +10,7 @@ async function administrator() {
   const { data } = await session.auth.getUser();
   if (!data.user) return null;
   const { data: profile } = await admin.from("profiles").select("account_role").eq("id", data.user.id).maybeSingle();
-  return profile?.account_role === "admin" ? admin : null;
+  return profile?.account_role === "admin" || isOwnerAdministrator(data.user) ? admin : null;
 }
 
 export async function GET() {
