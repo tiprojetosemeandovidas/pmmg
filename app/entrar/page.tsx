@@ -8,5 +8,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const requestedNext = typeof params.next === "string" ? params.next : "/app";
   const next = requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/app";
-  return <AuthForm initialMode={params.mode === "signup" ? "signup" : "login"} next={next as Route} confirmationError={params.erro === "confirmacao"} />;
+  const confirmationError = params.erro === "confirmacao_expirada"
+    ? "expired"
+    : params.erro === "confirmacao" || params.erro === "confirmacao_invalida"
+      ? "invalid"
+      : null;
+  return <AuthForm initialMode={params.mode === "signup" ? "signup" : "login"} next={next as Route} confirmationError={confirmationError} />;
 }

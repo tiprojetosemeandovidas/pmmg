@@ -7,15 +7,23 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Brand } from "@/components/brand";
 import { useAuth } from "@/components/providers/auth-provider";
 
-export function AuthForm({ initialMode, next, confirmationError }: { initialMode: "login" | "signup"; next: Route; confirmationError: boolean }) {
+type ConfirmationError = "expired" | "invalid" | null;
+
+export function AuthForm({ initialMode, next, confirmationError }: { initialMode: "login" | "signup"; next: Route; confirmationError: ConfirmationError }) {
   const router = useRouter();
-  const { status, signIn, signUp } = useAuth();
+  const { status, signIn, signUp, resendConfirmation } = useAuth();
   const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState(confirmationError ? "O link de confirmação expirou ou é inválido." : "");
+  const [message, setMessage] = useState(
+    confirmationError === "expired"
+      ? "O link de confirmação expirou. Digite seu e-mail abaixo para receber outro."
+      : confirmationError === "invalid"
+        ? "O link de confirmação é inválido ou já foi utilizado. Digite seu e-mail abaixo para receber outro."
+        : "",
+  );
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
@@ -41,6 +49,25 @@ export function AuthForm({ initialMode, next, confirmationError }: { initialMode
     router.replace(next);
   }
 
+  async function resend() {
+    if (!email.trim()) {
+      setSuccess(false);
+      setMessage("Digite o e-mail usado no cadastro para reenviar a confirmação.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    setSuccess(false);
+    const result = await resendConfirmation(email.trim());
+    setBusy(false);
+    if (!result.ok) {
+      setMessage(result.message);
+      return;
+    }
+    setSuccess(true);
+    setMessage("Enviamos um novo link. Abra-o neste mesmo navegador para confirmar sua conta.");
+  }
+
   return (
     <main className="auth-page">
       <section className="auth-panel">
@@ -59,6 +86,11 @@ export function AuthForm({ initialMode, next, confirmationError }: { initialMode
           <label>E-mail<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
           <label>Senha<input type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} /></label>
           {message && <p className={`auth-message ${success ? "success" : "error"}`} role="status">{message}</p>}
+          {confirmationError && (
+            <button className="auth-resend" type="button" onClick={resend} disabled={busy || status === "loading" || status === "unavailable"}>
+              Reenviar link de confirmação
+            </button>
+          )}
           <button className="primary-button auth-submit" type="submit" disabled={busy || status === "loading" || status === "unavailable"}>
             {busy ? "Aguarde…" : mode === "login" ? "Entrar →" : "Criar minha conta →"}
           </button>

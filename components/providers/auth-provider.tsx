@@ -20,6 +20,7 @@ type AuthContextValue = {
   status: "loading" | "authenticated" | "anonymous" | "unavailable";
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signUp: (name: string, email: string, password: string) => Promise<AuthResult>;
+  resendConfirmation: (email: string) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
 
@@ -30,7 +31,7 @@ function friendlyMessage(message: string) {
   if (/email not confirmed/i.test(message)) return "Confirme seu e-mail antes de entrar.";
   if (/already registered|already been registered/i.test(message)) return "Este e-mail já possui uma conta.";
   if (/password should be at least/i.test(message)) return "A senha precisa ter pelo menos 8 caracteres.";
-  if (/rate limit/i.test(message)) return "Muitas tentativas. Aguarde um pouco e tente novamente.";
+  if (/rate limit|only request this after/i.test(message)) return "Muitas tentativas. Aguarde um pouco e tente novamente.";
   return "Não foi possível concluir agora. Tente novamente.";
 }
 
@@ -85,11 +86,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [supabase]);
 
+  const resendConfirmation = useCallback(async (email: string): Promise<AuthResult> => {
+    if (!supabase) return { ok: false, message: "A conexão com o Supabase não está configurada." };
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: authCallbackUrl(window.location.origin) },
+      });
+      return error ? { ok: false, message: friendlyMessage(error.message) } : { ok: true };
+    } catch {
+      return { ok: false, message: "Não foi possível conectar ao serviço de autenticação." };
+    }
+  }, [supabase]);
+
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut();
   }, [supabase]);
 
-  const value = useMemo(() => ({ user, status, signIn, signUp, signOut }), [user, status, signIn, signUp, signOut]);
+  const value = useMemo(
+    () => ({ user, status, signIn, signUp, resendConfirmation, signOut }),
+    [user, status, signIn, signUp, resendConfirmation, signOut],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

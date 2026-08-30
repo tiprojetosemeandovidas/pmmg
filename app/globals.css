@@ -42,6 +42,7 @@ body { min-width: 320px; }
 .auth-form input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(77, 112, 55, .12); }
 .auth-submit { width: 100%; margin-top: 5px; }.auth-submit:disabled { opacity: .55; cursor: wait; }
 .auth-message { margin: 0; border-radius: 8px; padding: 11px 12px; font-size: 12px; }.auth-message.error { color: #8a3027; background: #fff0ed; }.auth-message.success { color: #285e33; background: #edf7ec; }
+.auth-resend { border: 0; background: transparent; color: var(--green-dark); font: 800 12px Manrope, sans-serif; text-decoration: underline; cursor: pointer; }.auth-resend:disabled { opacity: .55; cursor: wait; }
 .auth-demo { display: flex; justify-content: center; gap: 7px; margin-top: 23px; color: var(--muted); font-size: 12px; }.auth-demo a { color: var(--green-dark); font-weight: 800; }
 .auth-benefits { padding: clamp(50px, 10vw, 150px); display: flex; flex-direction: column; justify-content: center; color: #fff; background: radial-gradient(circle at 75% 20%, rgba(187, 224, 83, .2), transparent 34%), var(--green-dark); }
 .auth-benefits h2 { max-width: 560px; margin: 10px 0 30px; font: 800 clamp(38px, 5vw, 65px) Manrope, sans-serif; letter-spacing: -2px; line-height: 1.02; }
