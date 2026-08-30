@@ -31,7 +31,7 @@ export default function LandingPage() {
             <span className="access-kicker">ÁREA DO CANDIDATO</span>
             <h2>Sua próxima ação, sem achismo</h2>
             <p>Entre para ver seu plano, responder questões e acompanhar domínio e confiança por tópico.</p>
-            <Link className="access-primary" href="/app">Entrar na plataforma</Link>
+            <Link className="access-primary" href="/entrar">Entrar na plataforma</Link>
             <div className="access-divider"><i /><span>ou</span><i /></div>
             <Link className="access-secondary" href="/entrar?mode=signup&next=/app?onboarding=1">Montar meu plano grátis</Link>
             <small>Diagnóstico gratuito. Sem promessa de aprovação.</small>

@@ -5,6 +5,8 @@ test("landing and health endpoint are available", async ({ page, request }) => {
   expect(health.ok()).toBeTruthy();
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Saiba o que estudar/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Entrar", exact: true })).toHaveAttribute("href", "/entrar");
+  await expect(page.getByRole("link", { name: "Entrar na plataforma" })).toHaveAttribute("href", "/entrar");
 });
 
 test("signup form becomes available after auth initialization", async ({ page }) => {
