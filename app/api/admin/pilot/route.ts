@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { isOwnerAdministrator } from "@/lib/auth/roles";
 
@@ -10,12 +9,11 @@ const statusSchema = z.object({ participantId: z.string().uuid(), status: z.enum
 
 async function administrator() {
   const session = await createClient();
-  const admin = createAdminClient();
-  if (!session || !admin) return null;
+  if (!session) return null;
   const { data: auth } = await session.auth.getUser();
   if (!auth.user) return null;
-  const { data: profile } = await admin.from("profiles").select("account_role").eq("id", auth.user.id).maybeSingle();
-  return profile?.account_role === "admin" || isOwnerAdministrator(auth.user) ? { admin, user: auth.user } : null;
+  const { data: profile } = await session.from("profiles").select("account_role").eq("id", auth.user.id).maybeSingle();
+  return profile?.account_role === "admin" || isOwnerAdministrator(auth.user) ? { admin: session, user: auth.user } : null;
 }
 
 export async function GET() {
@@ -43,7 +41,7 @@ export async function POST(request: Request) {
   const created = createSchema.safeParse(body);
   if (created.success) {
     const { data, error } = await access.admin.from("pilot_cohorts").insert({ name: created.data.name, code: created.data.code, target_size: created.data.targetSize, status: "recruiting", created_by: access.user.id }).select("id,code,name,target_size,status").single();
-    if (error || !data) return NextResponse.json({ error: error?.code === "23505" ? "Já existe uma coorte com esse código." : "Não foi possível criar a coorte." }, { status: error?.code === "23505" ? 409 : 500 });
+    if (error || !data) return NextResponse.json({ error: error?.code === "23505" ? "Já existe uma coorte com esse código." : error?.code === "42501" ? "A política administrativa do piloto ainda não foi aplicada." : `Não foi possível criar a coorte${error?.code ? ` (${error.code})` : ""}.` }, { status: error?.code === "23505" ? 409 : error?.code === "42501" ? 403 : 500 });
     return NextResponse.json({ data }, { status: 201 });
   }
   const participant = participantSchema.safeParse(body);

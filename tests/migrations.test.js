@@ -117,5 +117,9 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
     await db.query("select has_column_privilege('authenticated', 'public.profiles', 'account_role', 'select') as allowed").then(result => result.rows[0].allowed),
     true,
   );
+  assert.equal(
+    await db.query("select count(*)::integer as count from pg_policies where schemaname = 'public' and policyname in ('pilot_cohorts_admin_all','pilot_participants_admin_all','pilot_feedback_admin_select','pilot_events_admin_select')").then(result => result.rows[0].count),
+    4,
+  );
   await db.close();
 });

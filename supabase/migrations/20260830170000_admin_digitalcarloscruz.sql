@@ -53,6 +53,49 @@ begin
 end
 $$;
 
+create or replace function public.is_account_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and account_role = 'admin'
+  )
+$$;
+
+revoke all on function public.is_account_admin() from public;
+grant execute on function public.is_account_admin() to authenticated, service_role;
+
+grant select, insert, update, delete on public.pilot_cohorts to authenticated;
+grant select, insert, update, delete on public.pilot_participants to authenticated;
+grant select on public.pilot_feedback to authenticated;
+grant select on public.pilot_events to authenticated;
+
+drop policy if exists "pilot_cohorts_admin_all" on public.pilot_cohorts;
+create policy "pilot_cohorts_admin_all" on public.pilot_cohorts
+  for all to authenticated
+  using (public.is_account_admin())
+  with check (public.is_account_admin());
+
+drop policy if exists "pilot_participants_admin_all" on public.pilot_participants;
+create policy "pilot_participants_admin_all" on public.pilot_participants
+  for all to authenticated
+  using (public.is_account_admin())
+  with check (public.is_account_admin());
+
+drop policy if exists "pilot_feedback_admin_select" on public.pilot_feedback;
+create policy "pilot_feedback_admin_select" on public.pilot_feedback
+  for select to authenticated
+  using (public.is_account_admin());
+
+drop policy if exists "pilot_events_admin_select" on public.pilot_events;
+create policy "pilot_events_admin_select" on public.pilot_events
+  for select to authenticated
+  using (public.is_account_admin());
+
 -- O papel é lido pelas APIs para autorizar ações privilegiadas. Usuários
 -- autenticados continuam podendo editar o perfil, exceto esta coluna.
 revoke update on public.profiles from authenticated;
