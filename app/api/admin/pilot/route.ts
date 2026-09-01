@@ -8,14 +8,19 @@ import { authCallbackUrl } from "@/lib/auth/redirect";
 const createSchema = z.object({ action: z.literal("create_cohort"), name: z.string().trim().min(3).max(120), code: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), targetSize: z.number().int().min(1).max(100).default(10) });
 const participantSchema = z.object({ action: z.literal("add_participant"), cohortId: z.string().uuid(), email: z.string().trim().email().max(320) });
 const inviteSchema = z.object({ action: z.literal("send_invite"), participantId: z.string().uuid() });
+const linkSchema = z.object({ action: z.literal("generate_invite_link"), participantId: z.string().uuid() });
 const statusSchema = z.object({ participantId: z.string().uuid(), status: z.enum(["completed", "withdrawn"]) });
+
+function pilotRedirectUrl(request: Request, cohortCode: string) {
+  const pilotNext = `/app?onboarding=1&pilot=${cohortCode}`;
+  const setupNext = `/definir-senha?next=${encodeURIComponent(pilotNext)}`;
+  return authCallbackUrl(new URL(request.url).origin, setupNext);
+}
 
 async function sendPilotInvite(request: Request, email: string, cohortCode: string) {
   const admin = createAdminClient();
   if (!admin) return { ok: false as const, error: "Serviço de envio não configurado." };
-  const pilotNext = `/app?onboarding=1&pilot=${cohortCode}`;
-  const setupNext = `/definir-senha?next=${encodeURIComponent(pilotNext)}`;
-  const redirectTo = authCallbackUrl(new URL(request.url).origin, setupNext);
+  const redirectTo = pilotRedirectUrl(request, cohortCode);
   const invited = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo,
     data: { pilot_cohort_code: cohortCode },
@@ -80,6 +85,26 @@ export async function POST(request: Request) {
     const delivery = await sendPilotInvite(request, invitedParticipant.invite_email, cohort.code);
     if (!delivery.ok) return NextResponse.json({ error: `O provedor não enviou o convite: ${delivery.error}` }, { status: 502 });
     return NextResponse.json({ data: { id: invitedParticipant.id, invite_email: invitedParticipant.invite_email, status: invitedParticipant.status, delivery: delivery.delivery } });
+  }
+  const generatedLink = linkSchema.safeParse(body);
+  if (generatedLink.success) {
+    const admin = createAdminClient();
+    if (!admin) return NextResponse.json({ error: "Serviço de autenticação não configurado." }, { status: 503 });
+    const { data: invitedParticipant } = await access.admin
+      .from("pilot_participants")
+      .select("id,invite_email,status,pilot_cohorts!inner(code,status)")
+      .eq("id", generatedLink.data.participantId)
+      .eq("status", "invited")
+      .maybeSingle();
+    const cohort = Array.isArray(invitedParticipant?.pilot_cohorts) ? invitedParticipant.pilot_cohorts[0] : invitedParticipant?.pilot_cohorts;
+    if (!invitedParticipant || !cohort || !["recruiting", "active"].includes(cohort.status)) return NextResponse.json({ error: "Link indisponível para este participante." }, { status: 409 });
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "magiclink",
+      email: invitedParticipant.invite_email,
+      options: { redirectTo: pilotRedirectUrl(request, cohort.code) },
+    });
+    if (error || !data.properties?.action_link) return NextResponse.json({ error: "Não foi possível gerar o link único." }, { status: 502 });
+    return NextResponse.json({ data: { actionLink: data.properties.action_link } });
   }
   const participant = participantSchema.safeParse(body);
   if (!participant.success) return NextResponse.json({ error: "Dados do participante inválidos." }, { status: 422 });
