@@ -1,11 +1,33 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isOwnerAdministrator } from "@/lib/auth/roles";
+import { authCallbackUrl } from "@/lib/auth/redirect";
 
 const createSchema = z.object({ action: z.literal("create_cohort"), name: z.string().trim().min(3).max(120), code: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), targetSize: z.number().int().min(1).max(100).default(10) });
 const participantSchema = z.object({ action: z.literal("add_participant"), cohortId: z.string().uuid(), email: z.string().trim().email().max(320) });
+const inviteSchema = z.object({ action: z.literal("send_invite"), participantId: z.string().uuid() });
 const statusSchema = z.object({ participantId: z.string().uuid(), status: z.enum(["completed", "withdrawn"]) });
+
+async function sendPilotInvite(request: Request, email: string, cohortCode: string) {
+  const admin = createAdminClient();
+  if (!admin) return { ok: false as const, error: "Serviço de envio não configurado." };
+  const next = `/app?onboarding=1&pilot=${cohortCode}`;
+  const redirectTo = authCallbackUrl(new URL(request.url).origin, next);
+  const invited = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo,
+    data: { pilot_cohort_code: cohortCode },
+  });
+  if (!invited.error) return { ok: true as const, delivery: "invite" as const };
+
+  const magicLink = await admin.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
+  });
+  if (!magicLink.error) return { ok: true as const, delivery: "magic_link" as const };
+  return { ok: false as const, error: magicLink.error.message || invited.error.message };
+}
 
 async function administrator() {
   const session = await createClient();
@@ -44,15 +66,34 @@ export async function POST(request: Request) {
     if (error || !data) return NextResponse.json({ error: error?.code === "23505" ? "Já existe uma coorte com esse código." : error?.code === "42501" ? "A política administrativa do piloto ainda não foi aplicada." : `Não foi possível criar a coorte${error?.code ? ` (${error.code})` : ""}.` }, { status: error?.code === "23505" ? 409 : error?.code === "42501" ? 403 : 500 });
     return NextResponse.json({ data }, { status: 201 });
   }
+  const invite = inviteSchema.safeParse(body);
+  if (invite.success) {
+    const { data: invitedParticipant } = await access.admin
+      .from("pilot_participants")
+      .select("id,invite_email,status,pilot_cohorts!inner(code,status)")
+      .eq("id", invite.data.participantId)
+      .eq("status", "invited")
+      .maybeSingle();
+    const cohort = Array.isArray(invitedParticipant?.pilot_cohorts) ? invitedParticipant.pilot_cohorts[0] : invitedParticipant?.pilot_cohorts;
+    if (!invitedParticipant || !cohort || !["recruiting", "active"].includes(cohort.status)) return NextResponse.json({ error: "Convite indisponível para reenvio." }, { status: 409 });
+    const delivery = await sendPilotInvite(request, invitedParticipant.invite_email, cohort.code);
+    if (!delivery.ok) return NextResponse.json({ error: `O provedor não enviou o convite: ${delivery.error}` }, { status: 502 });
+    return NextResponse.json({ data: { id: invitedParticipant.id, invite_email: invitedParticipant.invite_email, status: invitedParticipant.status, delivery: delivery.delivery } });
+  }
   const participant = participantSchema.safeParse(body);
   if (!participant.success) return NextResponse.json({ error: "Dados do participante inválidos." }, { status: 422 });
-  const { data: cohort } = await access.admin.from("pilot_cohorts").select("id,target_size,status").eq("id", participant.data.cohortId).in("status", ["recruiting", "active"]).maybeSingle();
+  const { data: cohort } = await access.admin.from("pilot_cohorts").select("id,code,target_size,status").eq("id", participant.data.cohortId).in("status", ["recruiting", "active"]).maybeSingle();
   if (!cohort) return NextResponse.json({ error: "Coorte indisponível para convites." }, { status: 409 });
   const { count } = await access.admin.from("pilot_participants").select("id", { count: "exact", head: true }).eq("cohort_id", cohort.id).neq("status", "withdrawn");
   if ((count ?? 0) >= cohort.target_size) return NextResponse.json({ error: "A coorte já atingiu o limite de participantes." }, { status: 409 });
   const { data, error } = await access.admin.from("pilot_participants").insert({ cohort_id: cohort.id, invite_email: participant.data.email.toLowerCase(), created_by: access.user.id }).select("id,invite_email,status").single();
   if (error || !data) return NextResponse.json({ error: error?.code === "23505" ? "Este e-mail já está na coorte." : "Não foi possível incluir o participante." }, { status: error?.code === "23505" ? 409 : 500 });
-  return NextResponse.json({ data }, { status: 201 });
+  const delivery = await sendPilotInvite(request, data.invite_email, cohort.code);
+  if (!delivery.ok) {
+    await access.admin.from("pilot_participants").delete().eq("id", data.id);
+    return NextResponse.json({ error: `Participante não incluído porque o provedor não enviou o convite: ${delivery.error}` }, { status: 502 });
+  }
+  return NextResponse.json({ data: { ...data, delivery: delivery.delivery } }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
