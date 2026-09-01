@@ -12,7 +12,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "enem:prepare": "node scripts/prepare-enem-archive.mjs",
+    "enem:import": "node --env-file=.env.local scripts/import-enem-archive.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",

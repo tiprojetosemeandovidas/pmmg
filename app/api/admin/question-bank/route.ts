@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { enemDiagnosticQuestions } from "@/lib/data/questions";
+import { generateQuestionsFromEnemArchive, type EnemArchiveReference } from "@/lib/enem/question-generator";
 import { researchQuestions } from "@/lib/perplexity/question-research";
 import { recordOperationalEvent, requestId } from "@/lib/platform/observability";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -44,6 +45,20 @@ const researchSchema = z.object({
   topicId: z.string().uuid().nullable().default(null),
 });
 
+const archiveGenerationSchema = z.object({
+  action: z.literal("generate_from_enem"),
+  prompt: z.string().trim().min(5).max(1200),
+  subject: z.enum(["Linguagens", "Matemática", "Ciências Humanas", "Ciências da Natureza", "Interdisciplinar"]),
+  topic: z.string().trim().min(2).max(160),
+  count: z.number().int().min(1).max(10).default(5),
+  difficulty: z.enum(["easy", "medium", "hard"]).default("medium"),
+  yearFrom: z.number().int().min(1998).max(2025).default(2009),
+  yearTo: z.number().int().min(1998).max(2025).default(2025),
+  examId: z.string().uuid().nullable().default(null),
+  axisId: z.string().uuid().nullable().default(null),
+  topicId: z.string().uuid().nullable().default(null),
+}).refine((value) => value.yearFrom <= value.yearTo, { message: "Intervalo de anos inválido.", path: ["yearTo"] });
+
 const reviewSchema = z.object({
   id: z.string().uuid(), status: z.enum(["approved", "rejected"]),
   notes: z.string().trim().max(2000).default(""),
@@ -73,16 +88,29 @@ function safeTimestamp(value: string | null) {
 export async function GET() {
   const access = await curator();
   if (!access) return NextResponse.json({ error: "Acesso restrito à curadoria." }, { status: 403 });
-  const [candidates, batches, exams, axes, topics] = await Promise.all([
+  const [candidates, batches, exams, axes, topics, archiveItems, archiveDocuments, archiveEntries] = await Promise.all([
     access.admin.from("question_candidates").select("*, question_candidate_sources(relation, content_sources(id,title,url,publisher,rights_status,retrieved_at))").order("created_at", { ascending: false }).limit(100),
     access.admin.from("question_import_batches").select("id,origin,provider,model,query,status,source_count,candidate_count,processing_error,created_at").order("created_at", { ascending: false }).limit(30),
     access.admin.from("exams").select("id,title,institution,role,exam_year,status").order("exam_year", { ascending: false }).limit(100),
     access.admin.from("question_axes").select("id,name,slug,display_order").order("display_order"),
     access.admin.from("topics").select("id,name,stable_code,subjects(name)").order("name").limit(500),
+    access.admin.from("enem_archive_items").select("id", { count: "exact", head: true }),
+    access.admin.from("enem_archive_documents").select("id", { count: "exact", head: true }),
+    access.admin.from("enem_archive_items")
+      .select("id,exam_year,exam_day,item_number,language_variant,axis,source_page,statement,options,correct_option,extraction_confidence,extraction_status,source_document:enem_archive_documents!source_document_id(file_name,official_page_url)")
+      .order("exam_year", { ascending: false })
+      .order("exam_day", { ascending: true })
+      .order("item_number", { ascending: true })
+      .limit(50),
   ]);
-  const failed = [candidates, batches, exams, axes, topics].find((result) => result.error);
+  const failed = [candidates, batches, exams, axes, topics, archiveItems, archiveDocuments, archiveEntries].find((result) => result.error);
   if (failed?.error) return NextResponse.json({ error: "Não foi possível carregar a central." }, { status: 500 });
-  return NextResponse.json({ candidates: candidates.data, batches: batches.data, exams: exams.data, axes: axes.data, topics: topics.data, perplexityConfigured: Boolean(process.env.PERPLEXITY_API_KEY?.trim()) });
+  return NextResponse.json({
+    candidates: candidates.data, batches: batches.data, exams: exams.data, axes: axes.data, topics: topics.data,
+    perplexityConfigured: Boolean(process.env.PERPLEXITY_API_KEY?.trim()),
+    openAiConfigured: Boolean(process.env.OPENAI_API_KEY?.trim()),
+    archive: { itemCount: archiveItems.count ?? 0, documentCount: archiveDocuments.count ?? 0, items: archiveEntries.data ?? [] },
+  });
 }
 
 export async function POST(request: Request) {
@@ -114,6 +142,66 @@ export async function POST(request: Request) {
     if (inserted?.length) await access.admin.from("question_candidate_sources").insert(inserted.map((candidate) => ({ candidate_id: candidate.id, source_id: source.id, relation: "original_question" })));
     await access.admin.from("question_import_batches").update({ status: "needs_review", source_count: 1, candidate_count: inserted?.length ?? 0, updated_at: new Date().toISOString() }).eq("id", batch.id);
     return NextResponse.json({ batchId: batch.id, candidateCount: inserted?.length ?? 0, sourceCount: 1 }, { status: 201 });
+  }
+  if (body?.action === "generate_from_enem") {
+    const parsed = archiveGenerationSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: "Parâmetros de geração inválidos.", details: parsed.error.flatten() }, { status: 400 });
+    const action = parsed.data;
+    let query = access.admin.from("enem_archive_items")
+      .select("id,exam_year,exam_day,item_number,language_variant,axis,statement,options,correct_option,source_page,source_document:enem_archive_documents!source_document_id(id,file_name,official_page_url,sha256)")
+      .eq("extraction_status", "ready").not("correct_option", "is", null)
+      .eq("axis", action.subject).gte("exam_year", action.yearFrom).lte("exam_year", action.yearTo)
+      .order("exam_year", { ascending: false }).limit(40);
+    if (action.topic.trim()) query = query.textSearch("search_document", action.topic, { type: "websearch", config: "portuguese" });
+    let { data: references, error: referenceError } = await query;
+    if (!referenceError && (!references || references.length < 3)) {
+      const fallback = await access.admin.from("enem_archive_items")
+        .select("id,exam_year,exam_day,item_number,language_variant,axis,statement,options,correct_option,source_page,source_document:enem_archive_documents!source_document_id(id,file_name,official_page_url,sha256)")
+        .eq("extraction_status", "ready").not("correct_option", "is", null)
+        .eq("axis", action.subject).gte("exam_year", action.yearFrom).lte("exam_year", action.yearTo)
+        .order("exam_year", { ascending: false }).limit(40);
+      references = fallback.data;
+      referenceError = fallback.error;
+    }
+    if (referenceError || !references?.length) return NextResponse.json({ error: "O acervo não possui referências extraídas para esse filtro." }, { status: 409 });
+    const selected = references.filter((_, index) => index % Math.max(1, Math.floor(references.length / 10)) === 0).slice(0, 10) as unknown as Array<EnemArchiveReference & { source_page: number; source_document: { id: string; file_name: string; official_page_url: string | null; sha256: string } | null }>;
+    const model = process.env.OPENAI_QUESTION_MODEL?.trim() || process.env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
+    const { data: batch, error: batchError } = await access.admin.from("question_import_batches").insert({
+      created_by: access.user.id, origin: "file_import", provider: "openai", model,
+      query: action.prompt, search_filters: { archive: "enem_1998_2025", subject: action.subject, topic: action.topic, yearFrom: action.yearFrom, yearTo: action.yearTo }, status: "searching",
+    }).select("id").single();
+    if (batchError || !batch) return NextResponse.json({ error: "Não foi possível iniciar o lote baseado no acervo." }, { status: 500 });
+    try {
+      const generated = await generateQuestionsFromEnemArchive({ ...action, references: selected });
+      const referencedIds = new Set(generated.questions.flatMap((question) => question.referenceItemIds));
+      const usedReferences = selected.filter((reference) => referencedIds.has(reference.id) && reference.source_document);
+      const documents = [...new Map(usedReferences.map((reference) => [reference.source_document!.id, reference.source_document!])).values()];
+      const { data: sources, error: sourceError } = await access.admin.from("content_sources").insert(documents.map((document) => ({
+        batch_id: batch.id, origin: "file_import", provider: "enem_archive", title: `ENEM — ${document.file_name}`,
+        url: document.official_page_url, publisher: "Inep", rights_status: "official",
+        content_hash: createHash("sha256").update(`${batch.id}:${document.sha256}`).digest("hex"),
+        metadata: { archiveDocumentId: document.id, sha256: document.sha256 }, created_by: access.user.id,
+      }))).select("id,metadata");
+      if (sourceError || !sources?.length) throw new Error("archive_sources_failed");
+      const rows = generated.questions.map((question) => ({
+        batch_id: batch.id, origin: "file_import", exam_id: action.examId, axis_id: action.axisId, topic_id: action.topicId,
+        subject: question.subject, topic: question.topic, statement: question.statement, options: question.options,
+        correct_option: question.correctOption, explanation: question.explanation, difficulty: question.difficulty,
+        content_hash: digest(question.statement, question.options), generation_model: generated.model, prompt_version: "enem-archive-v1",
+        provenance: { providerRequestId: generated.requestId, referenceItemIds: question.referenceItemIds, sourceSummary: question.sourceSummary, officialQuestion: false, archive: "ENEM 1998-2025", usage: generated.usage }, created_by: access.user.id,
+      }));
+      const { data: candidates, error: candidateError } = await access.admin.from("question_candidates").insert(rows).select("id");
+      if (candidateError || !candidates?.length) throw new Error(candidateError?.code === "23505" ? "duplicate_question" : "archive_candidates_failed");
+      await access.admin.from("question_candidate_sources").insert(candidates.flatMap((candidate) => sources.map((source) => ({ candidate_id: candidate.id, source_id: source.id, relation: "research_context" }))));
+      await access.admin.from("question_import_batches").update({ status: "needs_review", source_count: sources.length, candidate_count: candidates.length, model: generated.model, updated_at: new Date().toISOString() }).eq("id", batch.id);
+      await recordOperationalEvent(access.admin, { requestId: operationId, route: "/api/admin/question-bank", eventType: "enem_archive_generation_completed", statusCode: 201, durationMs: Date.now() - startedAt, userId: access.user.id, metadata: { referenceCount: usedReferences.length, candidateCount: candidates.length, model: generated.model } });
+      return NextResponse.json({ batchId: batch.id, candidateCount: candidates.length, sourceCount: sources.length, referenceCount: usedReferences.length }, { status: 201 });
+    } catch (caught) {
+      const code = caught instanceof Error ? caught.message.slice(0, 120) : "enem_archive_generation_failed";
+      await access.admin.from("question_import_batches").update({ status: "failed", processing_error: code, updated_at: new Date().toISOString() }).eq("id", batch.id);
+      const message = code === "openai_not_configured" ? "Configure OPENAI_API_KEY no servidor." : code === "duplicate_question" ? "Uma questão idêntica já está na fila." : "Não foi possível gerar questões a partir do acervo ENEM.";
+      return NextResponse.json({ error: message, code }, { status: code === "duplicate_question" ? 409 : 502 });
+    }
   }
   const action = body?.action === "research" ? researchSchema.safeParse(body) : manualSchema.safeParse(body);
   if (!action.success) return NextResponse.json({ error: "Dados do lote inválidos.", details: action.error.flatten() }, { status: 400 });
@@ -199,8 +287,8 @@ export async function PATCH(request: Request) {
     exam_id: examId, axis_id: axisId, subject: candidate.subject, topic: candidate.topic, statement: candidate.statement,
     options: candidate.options, correct_option: candidate.correct_option, explanation: candidate.explanation, difficulty: candidate.difficulty,
     content_hash: candidate.content_hash, status: "published", reviewed_by: access.user.id, reviewed_at: new Date().toISOString(),
-    source_type: candidate.origin === "web_researched" ? "web_researched" : "manually_created",
-    ai_generated: candidate.origin === "web_researched", validation_status: "validated", ingestion_origin: candidate.origin,
+    source_type: candidate.generation_model ? "ai_generated" : candidate.origin === "web_researched" ? "web_researched" : "manually_created",
+    ai_generated: Boolean(candidate.generation_model), validation_status: "validated", ingestion_origin: candidate.origin,
     validated_by: access.user.id, validated_at: new Date().toISOString(),
     generation_model: candidate.generation_model, provenance: candidate.provenance,
   }).select("id").single();

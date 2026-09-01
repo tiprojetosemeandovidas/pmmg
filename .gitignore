@@ -9,3 +9,4 @@ test-results
 playwright-report
 *.tsbuildinfo
 .env*
+Concursos/Enem/ENEM_1998_2025/.prepared/

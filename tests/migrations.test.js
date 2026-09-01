@@ -67,6 +67,9 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
   `);
   await db.exec(sql('supabase/migrations/20260830170000_admin_digitalcarloscruz.sql'));
   await db.exec(sql('supabase/migrations/20260830170000_admin_digitalcarloscruz.sql'));
+  await db.exec(sql('supabase/migrations/20260901120000_enem_archive_knowledge.sql'));
+  await db.exec(sql('supabase/migrations/20260901120000_enem_archive_knowledge.sql'));
+  await db.exec(sql('supabase/verify/009_enem_archive_check.sql'));
 
   const tables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('notices','user_roles','notice_extraction_runs','notice_stages','notice_chunks','notice_topic_mappings','api_rate_limits') order by tablename");
   assert.equal(tables.rows.length, 7);
@@ -121,5 +124,9 @@ test('aplica schema e migrações, reaplica Fases 2 a 6 e verifica objetos', { t
     await db.query("select count(*)::integer as count from pg_policies where schemaname = 'public' and policyname in ('pilot_cohorts_admin_all','pilot_participants_admin_all','pilot_feedback_admin_select','pilot_events_admin_select')").then(result => result.rows[0].count),
     4,
   );
+  const enemArchiveTables = await db.query("select tablename, rowsecurity from pg_tables where schemaname = 'public' and tablename in ('enem_archive_documents','enem_archive_chunks','enem_archive_items') order by tablename");
+  assert.equal(enemArchiveTables.rows.length, 3);
+  assert.ok(enemArchiveTables.rows.every(row => row.rowsecurity));
+  assert.equal(await db.query("select count(*)::integer as count from public.exams where slug like 'enem-%-regular-amarelo'").then(result => result.rows[0].count), 28);
   await db.close();
 });

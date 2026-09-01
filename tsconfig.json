@@ -39,6 +39,8 @@
     "node_modules",
     "legacy-static",
     "**/* 2.ts",
-    "**/* 2.tsx"
+    "**/* 2.tsx",
+    "**/* 3.ts",
+    "**/* 3.tsx"
   ]
 }

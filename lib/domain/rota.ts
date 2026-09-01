@@ -46,6 +46,9 @@ export type CandidateProfile = {
   availableDays: number[];
   preferredPeriod: string;
   interests: string[];
+  enemFocusArea?: string | null;
+  targetCourse?: string | null;
+  targetInstitution?: string | null;
   preferredFormats: StudyTaskType[];
   selfReportedStrengths: string[];
   onboardingCompleted: boolean;

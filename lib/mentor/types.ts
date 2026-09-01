@@ -13,7 +13,7 @@ export type MentorAnswer = z.infer<typeof mentorAnswerSchema>;
 export type MentorSource = {
   id: string;
   label: string;
-  type: "plan" | "performance" | "notice" | "review" | "physical" | "question_bank";
+  type: "plan" | "performance" | "notice" | "review" | "physical" | "question_bank" | "enem_archive";
   content: string;
 };
 

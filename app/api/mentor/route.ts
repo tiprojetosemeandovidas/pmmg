@@ -94,6 +94,19 @@ export async function POST(request: Request) {
   if (state?.version !== 3) return error("Conclua o onboarding para o Mentor conhecer sua rota.", 409, operationRequestId);
 
   const sources = buildMentorSources(state, (notices ?? []) as Array<{ original_filename: string; structured_data: Record<string, unknown> }>, { goals: physicalGoals ?? [], results: physicalResults ?? [] }, (approvedQuestions ?? []) as Array<{ id: string; subject: string; topic: string | null; statement: string; explanation: string | null; source_type: string; question_source_links?: unknown[] }>);
+  if (/enem/i.test(JSON.stringify(state.profile))) {
+    const { data: archiveItems } = await admin.from("enem_archive_items")
+      .select("id,exam_year,exam_day,item_number,axis,statement,options,correct_option,source_page,source_document:enem_archive_documents!source_document_id(file_name,official_page_url)")
+      .eq("extraction_status", "ready").not("correct_option", "is", null)
+      .textSearch("search_document", parsed.data.question, { type: "websearch", config: "portuguese" })
+      .order("exam_year", { ascending: false }).limit(6);
+    if (archiveItems?.length) sources.push({
+      id: "enem-archive-relevant",
+      label: "Questões oficiais relacionadas do acervo ENEM 1998–2025",
+      type: "enem_archive",
+      content: JSON.stringify(archiveItems).slice(0, 18_000),
+    });
+  }
   const model = getMentorModel();
   const openai = createOpenAIClient();
   const mode = openai ? "ai" : "deterministic";
