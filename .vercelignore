@@ -2,6 +2,7 @@
 api/**
 scripts/**
 tests/**/*.js
+tests/**/*.ts
 lib/**/*.js
 public/admin.html
 public/admin.js
