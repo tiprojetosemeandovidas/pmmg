@@ -14,6 +14,14 @@ describe("auth redirect", () => {
     expect(callback.searchParams.get("next")).toBe(next);
   });
 
+  it("allows an internal password-setup route with a nested pilot destination", () => {
+    const pilotNext = "/app?onboarding=1&pilot=enem-piloto-1";
+    const setupNext = `/definir-senha?next=${encodeURIComponent(pilotNext)}`;
+    const callback = new URL(authCallbackUrl("https://pmmg-livid.vercel.app", setupNext));
+    expect(callback.searchParams.get("next")).toBe(setupNext);
+    expect(safeAuthNext(setupNext)).toBe(setupNext);
+  });
+
   it("rejects external and backslash redirects", () => {
     expect(safeAuthNext("//evil.example")).toBe("/app");
     expect(safeAuthNext("/\\evil.example")).toBe("/app");

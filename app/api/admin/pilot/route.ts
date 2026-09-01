@@ -13,8 +13,9 @@ const statusSchema = z.object({ participantId: z.string().uuid(), status: z.enum
 async function sendPilotInvite(request: Request, email: string, cohortCode: string) {
   const admin = createAdminClient();
   if (!admin) return { ok: false as const, error: "Serviço de envio não configurado." };
-  const next = `/app?onboarding=1&pilot=${cohortCode}`;
-  const redirectTo = authCallbackUrl(new URL(request.url).origin, next);
+  const pilotNext = `/app?onboarding=1&pilot=${cohortCode}`;
+  const setupNext = `/definir-senha?next=${encodeURIComponent(pilotNext)}`;
+  const redirectTo = authCallbackUrl(new URL(request.url).origin, setupNext);
   const invited = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo,
     data: { pilot_cohort_code: cohortCode },
