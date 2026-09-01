@@ -14,6 +14,7 @@ import type {
   QuestionEvidence,
   RotaState,
   RotaViewModel,
+  WeeklyCheckinInput,
 } from "@/lib/domain/rota";
 import {
   createContext,
@@ -45,7 +46,7 @@ type RotaContextValue = {
     context: "diagnostic" | "practice" | "simulation" | "review",
   ) => void;
   completeTask: (taskId: string) => void;
-  completeWeeklyCheckin: () => void;
+  completeWeeklyCheckin: (checkin?: WeeklyCheckinInput) => void;
   recalculate: (reason?: string) => void;
   resetDemo: () => void;
 };
@@ -193,8 +194,8 @@ export function RotaProvider({ children }: { children: ReactNode }) {
     if (user) trackPilotEvent("task_completed", `task:${taskId}`, {});
   }, [user]);
 
-  const completeWeeklyCheckin = useCallback(() => {
-    setState((current) => applyWeeklyCheckin(current));
+  const completeWeeklyCheckin = useCallback((checkin?: WeeklyCheckinInput) => {
+    setState((current) => applyWeeklyCheckin(current, checkin));
     if (user) trackPilotEvent("weekly_checkin_completed", `checkin:${new Date().toISOString().slice(0, 10)}`, {});
   }, [user]);
 

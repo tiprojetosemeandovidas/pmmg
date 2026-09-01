@@ -6,6 +6,8 @@ import {
   determineMode,
   getViewModel,
   recordAnswer,
+  recalculatePlan,
+  completeTask,
 } from "@/lib/domain/adaptive-engine";
 
 const now = new Date("2026-08-27T12:00:00.000Z");
@@ -85,5 +87,26 @@ describe("adaptive engine", () => {
     expect(state.reviewQueue).toHaveLength(4);
     expect(getViewModel(state, now).rotaScore).toBeGreaterThan(0);
     expect(calculatePriorities(state, now).every((item) => item.priority <= 100)).toBe(true);
+  });
+
+  it("preserves completed sessions when new evidence recalculates the plan", () => {
+    let state = recalculatePlan(createInitialState(now), "initial", now);
+    const completedId = state.plan[0].id;
+    state = completeTask(state, completedId, now);
+    state = recordAnswer(
+      state,
+      {
+        axis: "Linguagens",
+        topic: "Interpretação",
+        topicId: "LING.INTERPRETACAO",
+        difficulty: "Média",
+        answer: 0,
+        text: "Evidência posterior",
+      },
+      0,
+      "practice",
+      new Date("2026-08-27T13:00:00.000Z"),
+    );
+    expect(state.plan.find((task) => task.id === completedId)?.status).toBe("completed");
   });
 });

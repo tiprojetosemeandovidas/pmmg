@@ -134,6 +134,7 @@ export type Priority = TopicDefinition & {
 };
 
 export type QuestionEvidence = {
+  topicId?: string;
   axis: string;
   topic: string;
   difficulty: "Fácil" | "Média" | "Difícil";
@@ -145,6 +146,11 @@ export type OnboardingInput = Omit<
   CandidateProfile,
   "name" | "onboardingCompleted" | "mode"
 > & { name?: string };
+
+export type WeeklyCheckinInput = {
+  pace: "light" | "balanced" | "heavy";
+  nextWeeklyHours: number;
+};
 
 export type RotaViewModel = {
   state: RotaState;

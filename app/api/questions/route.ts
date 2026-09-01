@@ -13,6 +13,11 @@ const difficultyLabel: Record<string, "Fácil" | "Média" | "Difícil"> = {
   hard: "Difícil",
 };
 
+const adaptiveTopicAliases: Record<string, string> = {
+  "LINGUAGENS.INTERPRETACAO": "LING.INTERPRETACAO",
+  "CONHECIMENTOS_GERAIS.CIDADANIA": "GERAL.CIDADANIA",
+};
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   if (!supabase) return NextResponse.json({ error: "Banco de questões indisponível." }, { status: 503 });
@@ -23,7 +28,7 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from("questions")
-    .select("id,subject,topic,statement,options,difficulty,source_type,exams!inner(role,exam_year,organizer),question_axes(name),question_sources(source_name,source_url,official),question_source_links(relation,content_sources(title,url,rights_status))")
+    .select("id,subject,topic,statement,options,difficulty,source_type,exams!inner(role,exam_year,organizer),question_axes(name),question_topics(is_primary,topics(stable_code)),question_sources(source_name,source_url,official),question_source_links(relation,content_sources(title,url,rights_status))")
     .eq("status", "published")
     .eq("validation_status", "validated")
     .order("created_at", { ascending: false })
@@ -40,6 +45,9 @@ export async function GET(request: Request) {
       const linkedSources = (Array.isArray(item.question_source_links) ? item.question_source_links : []).map((link) => Array.isArray(link.content_sources) ? link.content_sources[0] : link.content_sources).filter(Boolean);
       const normalizedSource = sources.find((candidate) => candidate.official) ?? sources[0];
       const linkedSource = linkedSources.find((candidate) => candidate?.rights_status === "official") ?? linkedSources[0];
+      const topicLinks = Array.isArray(item.question_topics) ? item.question_topics : [];
+      const primaryTopic = topicLinks.find((candidate) => candidate.is_primary) ?? topicLinks[0];
+      const normalizedTopic = Array.isArray(primaryTopic?.topics) ? primaryTopic.topics[0] : primaryTopic?.topics;
       const source = normalizedSource ? { name: normalizedSource.source_name, url: normalizedSource.source_url, official: normalizedSource.official }
         : linkedSource ? { name: linkedSource.title, url: linkedSource.url, official: linkedSource.rights_status === "official" } : null;
       return {
@@ -48,6 +56,7 @@ export async function GET(request: Request) {
         exam: exam ? `${exam.role} ${exam.exam_year}` : "Questão validada",
         difficulty: difficultyLabel[item.difficulty ?? "medium"] ?? "Média",
         topic: item.topic ?? item.subject,
+        topicId: normalizedTopic?.stable_code ? (adaptiveTopicAliases[normalizedTopic.stable_code] ?? normalizedTopic.stable_code) : undefined,
         text: item.statement,
         options: Array.isArray(item.options) ? item.options : [],
         sourceType: item.source_type,

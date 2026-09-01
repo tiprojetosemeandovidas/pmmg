@@ -10,6 +10,7 @@ import type {
   StudyTaskType,
   TopicDefinition,
   TopicMastery,
+  WeeklyCheckinInput,
 } from "@/lib/domain/rota";
 import { CAREER_TRACKS } from "@/lib/opportunities/catalog";
 
@@ -180,17 +181,21 @@ export function recalculatePlan(
     ? state.profile.preferredFormats
     : ["questions"];
 
+  const previousPlan = state.plan;
   state.plan = days.slice(0, sessionCount).map((weekday, index) => {
     const topic = ranked[index % ranked.length];
     const weeklyReview = index === sessionCount - 1;
+    const scheduledFor = dateForWeekday(weekday, now);
+    const previous = previousPlan.find((task) => dateKey(new Date(task.scheduledFor)) === dateKey(scheduledFor));
+    if (previous?.status === "completed") return previous;
     const type: StudyTaskType = weeklyReview
       ? "weekly_checkin"
       : index % 3 === 1
         ? "review"
         : formats[index % formats.length];
     return {
-      id: `task-${now.getTime()}-${index}`,
-      scheduledFor: dateForWeekday(weekday, now).toISOString(),
+      id: previous?.id ?? `task-${dateKey(scheduledFor)}-${weekday}`,
+      scheduledFor: scheduledFor.toISOString(),
       topicId: topic.id,
       subject: topic.subject,
       topic: weeklyReview ? "Fechamento e calibração da semana" : topic.topic,
@@ -266,6 +271,7 @@ export function completeOnboarding(
 
 function topicForQuestion(question: QuestionEvidence) {
   return (
+    (question.topicId ? TOPICS.find((topic) => topic.id === question.topicId) : undefined) ??
     TOPICS.find((topic) => topic.topic.toLowerCase() === question.topic.toLowerCase()) ??
     TOPICS.find((topic) => topic.subject === question.axis) ??
     TOPICS[4]
@@ -358,15 +364,20 @@ export function completeTask(input: RotaState, taskId: string, now = new Date())
   return state;
 }
 
-export function completeWeeklyCheckin(input: RotaState, now = new Date()) {
+export function completeWeeklyCheckin(input: RotaState, checkinOrNow?: WeeklyCheckinInput | Date, nowInput = new Date()) {
+  const checkin = checkinOrNow instanceof Date ? undefined : checkinOrNow;
+  const now = checkinOrNow instanceof Date ? checkinOrNow : nowInput;
   const state = structuredClone(input);
+  if (checkin) state.profile.weeklyHours = Math.max(2, Math.min(30, Math.round(checkin.nextWeeklyHours)));
   state.stats.weeklyCheckins += 1;
   state.activityLog = [...(state.activityLog ?? []), { type: "weekly_checkin", occurredAt: now.toISOString(), minutes: 0 } satisfies ActivityEvent].slice(-500);
   state.stats.xp += 50;
   state.stats.level = Math.floor(state.stats.xp / 150) + 1;
   return recalculatePlan(
     state,
-    "Nova semana criada após o fechamento semanal.",
+    checkin
+      ? `Nova semana criada após fechamento: ritmo ${checkin.pace} e ${state.profile.weeklyHours} horas disponíveis.`
+      : "Nova semana criada após o fechamento semanal.",
     now,
   );
 }

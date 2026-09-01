@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "enem:prepare": "node scripts/prepare-enem-archive.mjs",
-    "enem:import": "node --env-file=.env.local scripts/import-enem-archive.mjs"
+    "enem:import": "node --env-file=.env.local scripts/import-enem-archive.mjs",
+    "enem:promote": "node --env-file=.env.local scripts/promote-enem-archive.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.5",
