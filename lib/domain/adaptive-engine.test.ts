@@ -39,6 +39,22 @@ describe("adaptive engine", () => {
     expect(priorities.some((item) => item.id === "LEG.ETICA_DISCIPLINA")).toBe(false);
   });
 
+  it("uses the intended graduation area as a strategic ENEM emphasis", () => {
+    const health = createInitialState(now);
+    health.profile.career = "enem-2026";
+    health.profile.enemFocusArea = "health";
+    const healthPriorities = calculatePriorities(health, now);
+    expect(healthPriorities.find((item) => item.id === "NAT.BIOLOGIA")!.priority)
+      .toBeGreaterThan(healthPriorities.find((item) => item.id === "HUM.HISTORIA")!.priority);
+
+    const engineering = createInitialState(now);
+    engineering.profile.career = "enem-2026";
+    engineering.profile.enemFocusArea = "engineering";
+    const engineeringPriorities = calculatePriorities(engineering, now);
+    expect(engineeringPriorities.find((item) => item.id === "MAT.PROBLEMAS")!.priority)
+      .toBeGreaterThan(engineeringPriorities.find((item) => item.id === "LING.INTERPRETACAO")!.priority);
+  });
+
   it("keeps the PMMG score and plan scoped to PMMG topics", () => {
     const state = createInitialState(now);
     const priorities = calculatePriorities(state, now);

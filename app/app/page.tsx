@@ -6,6 +6,7 @@ import { OnboardingModal } from "@/components/onboarding-modal";
 import { GamificationPanel } from "@/components/gamification-panel";
 import { useRota } from "@/components/providers/rota-provider";
 import { PilotEnrollment } from "@/components/pilot-enrollment";
+import { enemFocusLabel } from "@/lib/domain/onboarding";
 
 const dayLabels = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 
@@ -52,7 +53,7 @@ function DashboardContent() {
         <button className="outline-button" type="button" onClick={() => setOnboardingOpen(true)}>⚙ Ajustar minha rota</button>
       </section>
 
-      {isEnem && <section className="enem-countdown"><div><span>ENEM 2026 • CALENDÁRIO OFICIAL</span><h2>{enemDays} dias para o primeiro dia</h2><p>8 de novembro: Linguagens, Ciências Humanas e Redação • 15 de novembro: Ciências da Natureza e Matemática.</p></div><div><b>8</b><small>NOV</small><i /><b>15</b><small>NOV</small></div><a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/orientacoes/cronograma" target="_blank" rel="noreferrer">Ver cronograma do Inep ↗</a></section>}
+      {isEnem && <section className="enem-countdown"><div><span>ENEM 2026 • CALENDÁRIO OFICIAL</span><h2>{enemDays} dias para o primeiro dia</h2><p>8 de novembro: Linguagens, Ciências Humanas e Redação • 15 de novembro: Ciências da Natureza e Matemática.</p><p><b>Meta atual:</b> {state.profile.targetCourse || enemFocusLabel(state.profile.enemFocusArea)}{state.profile.targetInstitution ? ` • ${state.profile.targetInstitution}` : ""}</p></div><div><b>8</b><small>NOV</small><i /><b>15</b><small>NOV</small></div><a href="https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/orientacoes/cronograma" target="_blank" rel="noreferrer">Ver cronograma do Inep ↗</a></section>}
 
       <section className="focus-card">
         <div className="focus-copy"><div className="label"><span className="pulse" /> PRÓXIMA MELHOR AÇÃO</div><div className="focus-title"><span className="subject-icon">{nextPriority.icon}</span><div><small>{view.nextAction.subject.toUpperCase()}</small><h2>{view.nextAction.topic}</h2></div></div><p>{view.nextAction.explanation}</p><div className="session-meta"><span>◷ <b>{view.nextAction.minutes} min</b></span><span>▣ {view.nextAction.type === "weekly_checkin" ? "Fechamento semanal" : "Estudo direcionado"}</span><span>↗ Prioridade <b>{view.nextAction.priority}/100</b></span></div><button className="primary-button" type="button" onClick={startNextAction}>{view.nextAction.type === "weekly_checkin" ? "Fazer fechamento" : "Iniciar sessão"} <span>→</span></button></div>

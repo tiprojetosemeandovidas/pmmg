@@ -7,6 +7,7 @@ import { questionsForCareer, type PracticeQuestion } from "@/lib/data/questions"
 type ExamArchive = { career: string; year: number; file: string; questionCount: number };
 type QuestionSource = { name: string; url: string | null; official: boolean } | null;
 type DisplayQuestion = Omit<PracticeQuestion, "answer" | "explanation"> & {
+  topicId?: string;
   answer?: number;
   explanation?: string;
   source?: QuestionSource;
@@ -27,6 +28,13 @@ function balanceByAxis(items: DisplayQuestion[]) {
   return balanced;
 }
 
+function prioritizeByTopic(items: DisplayQuestion[], topicOrder: string[]) {
+  const rank = new Map(topicOrder.map((topicId, index) => [topicId, index]));
+  return [...items].sort((left, right) =>
+    (rank.get(left.topicId ?? "") ?? topicOrder.length) - (rank.get(right.topicId ?? "") ?? topicOrder.length),
+  );
+}
+
 const subscribeToLocation = () => () => undefined;
 const simulationSnapshot = () => new URLSearchParams(window.location.search).get("mode") === "simulation";
 const serverSimulationSnapshot = () => false;
@@ -42,11 +50,18 @@ export default function QuestionsPage() {
   const [loadMessage, setLoadMessage] = useState("");
   const [diagnosticSessionId, setDiagnosticSessionId] = useState<string | null>(null);
   const [archive, setArchive] = useState<ExamArchive[]>([]);
+  const [sessionTopicOrder, setSessionTopicOrder] = useState<string[]>([]);
   const simulationMode = useSyncExternalStore(subscribeToLocation, simulationSnapshot, serverSimulationSnapshot);
   const questionStartedAt = useRef(0);
+  const priorityOrderRef = useRef(view.priorities.map((item) => item.id));
   const isEnem = state.profile.career === "enem-2026";
   const localQuestions = useMemo(() => questionsForCareer(state.profile.career), [state.profile.career]);
-  const careerQuestions = useMemo<DisplayQuestion[]>(() => remoteQuestions.length >= 10 ? remoteQuestions : localQuestions, [localQuestions, remoteQuestions]);
+  const careerQuestions = useMemo<DisplayQuestion[]>(() => {
+    const available = remoteQuestions.length >= 10 ? remoteQuestions : localQuestions;
+    return state.diagnostic.active || simulationMode
+      ? balanceByAxis(available)
+      : prioritizeByTopic(available, sessionTopicOrder);
+  }, [localQuestions, remoteQuestions, sessionTopicOrder, simulationMode, state.diagnostic.active]);
   const questions = useMemo(() => {
     const filtered = axis === "all" ? careerQuestions : careerQuestions.filter((item) => item.axis === axis);
     const available = filtered.length ? filtered : careerQuestions;
@@ -60,13 +75,16 @@ export default function QuestionsPage() {
     fetch("/data/exams.json").then((response) => response.json()).then((data: ExamArchive[]) => setArchive(data)).catch(() => setArchive([]));
   }, []);
 
+  useEffect(() => { priorityOrderRef.current = view.priorities.map((item) => item.id); }, [view.priorities]);
+
   useEffect(() => {
     let active = true;
     fetch(`/api/questions?career=${encodeURIComponent(state.profile.career)}&limit=100`)
       .then(async (response) => response.ok ? response.json() : Promise.reject(new Error(String(response.status))))
       .then((payload: { data?: DisplayQuestion[] }) => {
         if (!active) return;
-        setRemoteQuestions(balanceByAxis((payload.data ?? []).map((item) => ({ ...item, persisted: true }))));
+        setSessionTopicOrder(priorityOrderRef.current);
+        setRemoteQuestions((payload.data ?? []).map((item) => ({ ...item, persisted: true })));
         setLoadMessage((payload.data?.length ?? 0) >= 10 ? "" : "Usando o conjunto autoral de demonstração até haver ao menos 10 questões validadas no acervo.");
       })
       .catch(() => { if (active) setLoadMessage("Usando o conjunto autoral local; entre na conta para carregar o acervo persistido."); });
@@ -109,7 +127,7 @@ export default function QuestionsPage() {
   }
 
   return <div className="next-content">
-    <header className="page-header"><div><p className="eyebrow">{state.diagnostic.active ? "DIAGNÓSTICO ADAPTATIVO" : simulationMode ? "SIMULADO RÁPIDO" : "BANCO DE QUESTÕES"}</p><h1>{state.diagnostic.active ? `Questão ${state.diagnostic.answered + 1} de ${state.diagnostic.target}` : simulationMode ? `Questão ${Math.min(Object.keys(feedback).length + 1, 10)} de 10` : "Treino direcionado"}</h1><p>Questões autorais e oficiais permanecem identificadas por origem.</p></div><div className="question-total"><b>{simulationMode ? Math.min(careerQuestions.length, 10) : careerQuestions.length}</b><span>itens nesta sessão</span></div></header>
+    <header className="page-header"><div><p className="eyebrow">{state.diagnostic.active ? "DIAGNÓSTICO ADAPTATIVO" : simulationMode ? "SIMULADO RÁPIDO" : "BANCO DE QUESTÕES"}</p><h1>{state.diagnostic.active ? `Questão ${state.diagnostic.answered + 1} de ${state.diagnostic.target}` : simulationMode ? `Questão ${Math.min(Object.keys(feedback).length + 1, 10)} de 10` : "Treino direcionado"}</h1><p>{state.diagnostic.active || simulationMode ? "Distribuição equilibrada entre as áreas disponíveis." : `Começando pela prioridade atual: ${view.priorities[0]?.subject}.`} Questões autorais e oficiais permanecem identificadas por origem.</p></div><div className="question-total"><b>{simulationMode ? Math.min(careerQuestions.length, 10) : careerQuestions.length}</b><span>itens nesta sessão</span></div></header>
     {loadMessage && <p className="auth-message" role="status">{loadMessage}</p>}
     <div className="axis-strip"><button className={`axis-card ${axis === "all" ? "active" : ""}`} onClick={(event) => { questionStartedAt.current = event.timeStamp; setAxis("all"); setIndex(0); }}>Todos</button>{[...new Set(careerQuestions.map((item) => item.axis))].map((item) => <button className={`axis-card ${axis === item ? "active" : ""}`} key={item} onClick={(event) => { questionStartedAt.current = event.timeStamp; setAxis(item); setIndex(0); }}>{item}</button>)}</div>
     <section className="question-area"><div className="question-toolbar"><div><span>QUESTÃO {index + 1} DE {questions.length}</span><b>{question.axis}</b></div><span className="source-pill">{question.source?.official ? "Oficial • origem auditada" : question.persisted ? "Validada pela curadoria" : "Autoral • demonstração"}</span></div><article className="question-card"><div className="question-tags"><span>{question.exam}</span><span>{question.topic}</span><span>{question.difficulty}</span></div><h2>{question.text}</h2><div className="alternatives">{question.options.map((option, optionIndex) => { const answered = selected !== undefined; const className = answered && optionIndex === result?.correctOption ? "correct" : answered && optionIndex === selected ? "wrong" : selected === optionIndex ? "selected" : ""; return <button className={`alternative ${className}`} disabled={answering} type="button" key={`${optionIndex}-${option}`} onClick={(event) => void answer(optionIndex, event.timeStamp)}><i>{String.fromCharCode(65 + optionIndex)}</i>{option}</button>; })}</div>{result && <div className="explanation"><b>{result.correct ? "Resposta correta." : "Resposta incorreta."}</b> {result.explanation}</div>}{question.source?.url && <a href={question.source.url} target="_blank" rel="noreferrer">Consultar fonte: {question.source.name} ↗</a>}</article><div className="question-nav"><button className="outline-button" type="button" onClick={(event) => { questionStartedAt.current = event.timeStamp; setIndex((current) => (current - 1 + questions.length) % questions.length); }}>← Anterior</button><div>{questions.map((item, itemIndex) => <i className={itemIndex === index ? "active" : ""} key={item.id} />)}</div><button className="primary-button" type="button" onClick={(event) => { questionStartedAt.current = event.timeStamp; setIndex((current) => (current + 1) % questions.length); }}>Próxima →</button></div></section>

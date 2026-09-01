@@ -13,6 +13,7 @@ import type {
   WeeklyCheckinInput,
 } from "@/lib/domain/rota";
 import { CAREER_TRACKS } from "@/lib/opportunities/catalog";
+import { enemEmphasisForTopic, enemFocusLabel } from "@/lib/domain/onboarding";
 
 const DAY = 86_400_000;
 
@@ -39,6 +40,15 @@ export function topicsForCareer(career: string) {
     ? TOPICS.filter((topic) => (weights[topic.id] ?? 0) > 0).map((topic) => ({ ...topic, weight: weights[topic.id] }))
     : TOPICS.slice(0, 5);
   return scoped.length ? scoped : TOPICS.slice(0, 5);
+}
+
+export function topicsForProfile(profile: RotaState["profile"]) {
+  const topics = topicsForCareer(profile.career);
+  if (profile.career !== "enem-2026") return topics;
+  return topics.map((topic) => ({
+    ...topic,
+    weight: topic.weight * enemEmphasisForTopic(topic.id, profile.enemFocusArea),
+  }));
 }
 
 const clamp = (value: number, min = 0, max = 1) =>
@@ -134,7 +144,7 @@ function urgency(state: RotaState, now: Date) {
 
 export function calculatePriorities(state: RotaState, now = new Date()): Priority[] {
   const currentUrgency = urgency(state, now);
-  return topicsForCareer(state.profile.career).map((topic) => {
+  return topicsForProfile(state.profile).map((topic) => {
     const mastery = state.mastery[topic.id] ?? createMastery(topic.id);
     const gap = 1 - mastery.score;
     const uncertainty = 1 - mastery.confidence;
@@ -150,7 +160,7 @@ export function calculatePriorities(state: RotaState, now = new Date()): Priorit
       mastery: mastery.score,
       confidence: mastery.confidence,
       priority,
-      reason: `${topic.subject} tem prioridade ${priority}/100 porque o peso relativo é ${Math.round(topic.weight * 100)}%, seu domínio estimado é ${Math.round(mastery.score * 100)}% e a confiança dessa estimativa é ${Math.round(mastery.confidence * 100)}%.`,
+      reason: `${topic.subject} tem prioridade ${priority}/100 porque o peso estratégico é ${Math.round(topic.weight * 100)}%, seu domínio estimado é ${Math.round(mastery.score * 100)}% e a confiança dessa estimativa é ${Math.round(mastery.confidence * 100)}%.${state.profile.career === "enem-2026" && state.profile.enemFocusArea && state.profile.enemFocusArea !== "undecided" ? ` A ênfase considera sua meta em ${enemFocusLabel(state.profile.enemFocusArea)}; pesos oficiais do curso devem ser confirmados no Sisu ou na instituição.` : ""}`,
     };
   }).sort((a, b) => b.priority - a.priority);
 }
@@ -383,7 +393,7 @@ export function completeWeeklyCheckin(input: RotaState, checkinOrNow?: WeeklyChe
 }
 
 export function calculateRotaScore(state: RotaState) {
-  const values = topicsForCareer(state.profile.career).map((topic) => state.mastery[topic.id] ?? createMastery(topic.id));
+  const values = topicsForProfile(state.profile).map((topic) => state.mastery[topic.id] ?? createMastery(topic.id));
   const mastery = values.reduce((sum, item) => sum + item.score, 0) / values.length;
   const coverage = values.filter((item) => item.confidence >= 0.2).length / values.length;
   const consistency = state.stats.plannedSessions
