@@ -16,6 +16,7 @@ const navigation = [
   ["/app/radar", "⌖", "Rota Score"],
   ["/app/oportunidades", "◎", "Oportunidades"],
   ["/app/mentor", "✦", "Mentor IA"],
+  ["/app/redacoes", "✎", "Redações"],
   ["/app/questoes", "?", "Questões"],
   ["/app/revisoes", "↻", "Revisões"],
   ["/app/simulados", "◉", "Simulados"],

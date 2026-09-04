@@ -60,6 +60,7 @@ npm run build
 - Caderno de Erros e revisão;
 - XP, nível e sequência;
 - rotas reais para plano, desempenho, Radar, oportunidades, Mentor IA, questões, simulados, TAF, editais e ajuda.
+- laboratório de redação ENEM com método, conectivos, repertório, correção por competência e geração de modelos originais;
 
 Usuários autenticados sincronizam o estado adaptativo na tabela `candidate_states`. O `localStorage` funciona como cache offline por usuário e como fonte do modo demonstração; a aplicação nunca mistura automaticamente o estado remoto de duas contas.
 
@@ -101,6 +102,10 @@ Editais são enviados para um bucket privado, validados por assinatura e tamanho
 ## Mentor IA
 
 O endpoint `/api/mentor` usa a Responses API somente no servidor, com `store: false`, saída estruturada, identificador de segurança pseudonimizado e até 30 solicitações em uma janela de 24 horas. No MVP, o modelo padrão é o econômico `gpt-5.6-luna`, com esforço de raciocínio baixo para controlar custo e latência; ele pode ser trocado por `OPENAI_MODEL`. Cada resposta registra fontes, modelo, versão do prompt, tokens e latência em `ai_interactions`. Sem `OPENAI_API_KEY`, o Mentor mantém uma orientação determinística baseada no motor adaptativo e identifica esse modo na interface.
+
+## Redações ENEM
+
+A rota `/app/redacoes` transforma padrões derivados de 16 redações nota 1000 publicadas em materiais oficiais do Inep em um método de treino. O conteúdo integral dos participantes não é incorporado ao produto: a base registra somente abstrações sobre estrutura, coesão, repertório e intervenção. O Laboratório IA corrige rascunhos pelas cinco competências e pode gerar um modelo original para estudo; a pontuação é sempre identificada como estimativa pedagógica, nunca como nota oficial ou garantia de resultado. As chamadas são autenticadas, limitadas por plano, executadas no servidor e usam `store: false`.
 
 ## Opportunity Engine
 
